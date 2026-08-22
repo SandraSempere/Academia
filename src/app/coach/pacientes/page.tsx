@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getPatientsWithStatus, getProgressSummary } from "@/lib/patient";
 import { PatientSearch } from "@/components/patient-search";
 
+export const dynamic = "force-dynamic";
+
 export default async function PacientesPage() {
   const { activas, finalizadas } = await getPatientsWithStatus();
 

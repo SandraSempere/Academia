@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ChangePasswordForm } from "@/components/change-password-form";
 
+// Todas estas páginas leen de la base de datos en cada visita (progreso,
+// formularios, plan de la paciente...) — nunca deben quedar precompiladas
+// como estáticas en el build, porque en el build todavía no existe la base
+// de datos (vive en el volumen de producción, no en la imagen).
+export const dynamic = "force-dynamic";
+
 const NAV_ITEMS = [
   { href: "/", label: "Inicio" },
   { href: "/academia", label: "Academia" },

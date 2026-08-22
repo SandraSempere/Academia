@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { LessonItem } from "@/components/lesson-item";
 import { ResourceCard } from "@/components/resource-card";
 
+export const dynamic = "force-dynamic";
+
 const END_OF_MODULE_RESOURCES = [
   "Tu mapa de prioridades digestivas",
   "SOS de bolsillo",

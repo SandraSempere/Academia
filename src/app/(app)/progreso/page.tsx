@@ -9,6 +9,8 @@ import { ResourceCard } from "@/components/resource-card";
 import { MealDiary } from "@/components/meal-diary";
 import type { MealDiaryEntryData } from "@/lib/meal-diary-fields";
 
+export const dynamic = "force-dynamic";
+
 const QUINCENAL_WEEKS = [2, 6, 10];
 
 const SEGUIMIENTO_VIDEOS = [

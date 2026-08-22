@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getPatientsWithStatus } from "@/lib/patient";
 import { isTimeTbd, formularioWeekOverdue } from "@/lib/revisiones";
 
+export const dynamic = "force-dynamic";
+
 const WEEKDAY_FULL = [
   "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado",
 ];

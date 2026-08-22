@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { SymptomForm } from "@/components/symptom-form";
 import { SymptomFormSummary } from "@/components/symptom-form-summary";
 
+export const dynamic = "force-dynamic";
+
 export default async function FormularioSintomasPage() {
   const profile = await getCurrentPatientProfile();
   const existing = profile

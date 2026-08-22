@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { QuincenalForm } from "@/components/quincenal-form";
 import { QuincenalFormSummary } from "@/components/quincenal-form-summary";
 
+export const dynamic = "force-dynamic";
+
 const VALID_WEEKS = [2, 6, 10];
 
 export default async function RevisionQuincenalPage({

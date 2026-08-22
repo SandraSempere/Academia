@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { RuleAuditForm } from "@/components/rule-audit-form";
 import { RuleAuditFormSummary } from "@/components/rule-audit-form-summary";
 
+export const dynamic = "force-dynamic";
+
 export default async function AuditoriaReglasPage() {
   const profile = await getCurrentPatientProfile();
   const existing = profile

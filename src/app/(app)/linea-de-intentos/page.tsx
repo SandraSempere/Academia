@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { CommitmentForm } from "@/components/commitment-form";
 import { CommitmentFormSummary } from "@/components/commitment-form-summary";
 
+export const dynamic = "force-dynamic";
+
 export default async function LineaDeIntentosPage() {
   const profile = await getCurrentPatientProfile();
   const existing = profile

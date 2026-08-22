@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { createAppointment, deleteAppointment, updateAppointment } from "@/app/coach/actions";
 import { isTimeTbd } from "@/lib/revisiones";
 
+export const dynamic = "force-dynamic";
+
 const MONTH_NAMES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",

@@ -8,6 +8,8 @@ import { IntakeScreeningForm } from "@/components/intake-screening-form";
 import { ResourceCard } from "@/components/resource-card";
 import { formularioReminder } from "@/lib/revisiones";
 
+export const dynamic = "force-dynamic";
+
 const PHASES = [
   { emoji: "🔍", label: "Fase 1", description: "Encontrar la raíz exacta de lo que te pasa" },
   { emoji: "⚙️", label: "Fase 2", description: "Trabajar el desequilibrio de base" },

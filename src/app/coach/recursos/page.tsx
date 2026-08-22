@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { uploadResourceFile } from "@/app/coach/actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function CoachRecursosPage() {
   const resources = await prisma.resource.findMany({
     orderBy: [{ category: "asc" }, { order: "asc" }],

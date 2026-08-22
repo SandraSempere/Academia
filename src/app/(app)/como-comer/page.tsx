@@ -2,6 +2,8 @@ import { getCurrentPatientProfile } from "@/lib/patient";
 import { prisma } from "@/lib/prisma";
 import { EatingChecklistForm } from "@/components/eating-checklist-form";
 
+export const dynamic = "force-dynamic";
+
 export default async function ComoComerPage() {
   const profile = await getCurrentPatientProfile();
   const existing = profile

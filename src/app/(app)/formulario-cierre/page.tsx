@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { ClosingForm } from "@/components/closing-form";
 import { ClosingFormSummary } from "@/components/closing-form-summary";
 
+export const dynamic = "force-dynamic";
+
 export default async function FormularioCierrePage() {
   const profile = await getCurrentPatientProfile();
   const existing = profile

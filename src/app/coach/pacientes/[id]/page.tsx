@@ -25,6 +25,8 @@ import { ProgramTimeline } from "@/components/program-timeline";
 import { PERSONAL_FIELDS } from "@/lib/symptom-form-fields";
 import type { MealDiaryEntryData } from "@/lib/meal-diary-fields";
 
+export const dynamic = "force-dynamic";
+
 const PLAN_FILE_SECTIONS = [
   { category: "accion", title: "Plan de acción" },
   { category: "nutricional", title: "Plan nutricional" },

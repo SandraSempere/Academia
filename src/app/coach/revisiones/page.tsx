@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { computeCheckpoints, formularioAlert } from "@/lib/revisiones";
 import { updateRevisionDate } from "@/app/coach/actions";
 
+export const dynamic = "force-dynamic";
+
 function toDateInputValue(date: Date) {
   // Fecha local (no UTC) — con toISOString() una medianoche local en
   // Europe/Madrid (UTC+1/+2) se desplaza al día anterior.

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { CelebrationForm } from "@/components/celebration-form";
 import { CelebrationFormSummary } from "@/components/celebration-form-summary";
 
+export const dynamic = "force-dynamic";
+
 export default async function CelebracionPage() {
   const profile = await getCurrentPatientProfile();
   const existing = profile

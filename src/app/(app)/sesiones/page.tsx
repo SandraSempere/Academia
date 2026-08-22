@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { VideoEmbed } from "@/components/video-embed";
 import { ResourceCard } from "@/components/resource-card";
 
+export const dynamic = "force-dynamic";
+
 const NUTRITIONAL_GUIDE_TITLE = "Cómo usar tu plan nutricional";
 const SUPPLEMENTATION_GUIDE_TITLE = "Por qué añadimos suplementación y para qué sirve";
 const RECIPE_RESOURCE_TITLES = [

@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { listBackups } from "@/lib/google-drive";
 import { runBackup, restoreBackup, disconnectBackup } from "@/app/coach/backup-actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function BackupPage({
   searchParams,
 }: {

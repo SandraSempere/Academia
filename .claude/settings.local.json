@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__5562b802-7bf3-4325-827b-644e11af04ec__notion-fetch",
+      "WebSearch"
+    ]
+  }
+}

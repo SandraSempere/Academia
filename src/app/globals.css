@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+/*
+ * Paleta y tipografía reales de "Sandra Sempere · Dietista Integrativa"
+ * (Manual de Marca, 2026-07-31). Los tonos "-soft" que no aparecen en el
+ * manual (rosa-terracota-soft, verde-salvia-soft) son tintes calculados de
+ * su color base para tener variedad en bloques, no colores inventados.
+ */
+:root {
+  --color-crema: #f5f1ea;
+  --color-blanco-roto: #fafaf8;
+  --color-carbon: #2f3a35;
+  --color-rosa-palido: #f3cfc7;
+  --color-salmon: #f5c7b8;
+  --color-rosa-terracota: #e8a7a1;
+  --color-rosa-terracota-soft: #faedec;
+  --color-verde-salvia: #8fa99b;
+  --color-verde-salvia-soft: #e9eeeb;
+  --color-verde-oscuro: #6f8576;
+
+  --background: var(--color-crema);
+  --foreground: var(--color-carbon);
+
+  /* Alias semánticos usados en los componentes */
+  --brand-primary: var(--color-rosa-terracota);
+  --brand-primary-soft: var(--color-rosa-palido);
+  --brand-secondary: var(--color-verde-oscuro);
+  --brand-secondary-soft: var(--color-salmon);
+  --brand-tertiary: var(--color-verde-salvia);
+  --brand-tertiary-soft: var(--color-verde-salvia-soft);
+  --brand-quaternary: var(--color-verde-oscuro);
+  --brand-quaternary-soft: var(--color-rosa-terracota-soft);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-crema: var(--color-crema);
+  --color-blanco-roto: var(--color-blanco-roto);
+  --color-carbon: var(--color-carbon);
+  --color-rosa-palido: var(--color-rosa-palido);
+  --color-salmon: var(--color-salmon);
+  --color-rosa-terracota: var(--color-rosa-terracota);
+  --color-verde-salvia: var(--color-verde-salvia);
+  --color-verde-oscuro: var(--color-verde-oscuro);
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-soft: var(--brand-primary-soft);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-secondary-soft: var(--brand-secondary-soft);
+  --color-brand-tertiary: var(--brand-tertiary);
+  --color-brand-tertiary-soft: var(--brand-tertiary-soft);
+  --color-brand-quaternary: var(--brand-quaternary);
+  --color-brand-quaternary-soft: var(--brand-quaternary-soft);
+  --font-sans: var(--font-lato);
+  --font-heading: var(--font-montserrat);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading), Arial, Helvetica, sans-serif;
+}

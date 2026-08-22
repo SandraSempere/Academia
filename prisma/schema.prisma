@@ -1,0 +1,460 @@
+// Prisma schema for Origen Digestivo — Academia
+// Modelo basado en la estructura real del programa de Sandra en Notion:
+// Academia (Módulos > Lecciones), Sesiones (Plan/Suplementación), Mi progreso
+// (hoja de ruta de 12 semanas + seguimiento quincenal), Recursos.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  PATIENT
+  COACH
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  passwordHash        String
+  name                String
+  role                Role                 @default(PATIENT)
+  blocked             Boolean              @default(false) // la coach le bloquea el acceso a la app sin borrar sus datos
+  mustChangePassword  Boolean              @default(true) // fuerza a cambiar la contraseña provisional/reiniciada al entrar — solo se comprueba para pacientes
+  createdAt           DateTime             @default(now())
+  patientProfile      PatientProfile?
+  passwordResetTokens PasswordResetToken[]
+}
+
+// "¿Olvidaste tu contraseña?" — enlace de un solo uso enviado por email,
+// válido 1 hora. Independiente de mustChangePassword: este es el flujo de
+// autoservicio para cuando la paciente ya no puede entrar; mustChangePassword
+// es el flujo de "cámbiala antes de seguir" cuando sí puede entrar.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// Perfil clínico/de programa de una paciente (solo existe para role = PATIENT)
+model PatientProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planStartDate DateTime? // "Inicio plan" — se pone sola al subir el primer Plan nutricional, dispara el calendario de revisiones
+  revision4Date DateTime? // "Revisión semana 4" — se calcula sola (Inicio+30) y la coach la puede modificar a mano
+  revision8Date DateTime? // "Revisión semana 8" — se calcula sola (Inicio+60) y la coach la puede modificar a mano
+  renewalEnabled       Boolean   @default(false) // "Renovación" (otras 12 semanas) — la activa la coach a mano, nunca sola
+  renewalPlanStartDate DateTime? // se pone sola al activar la renovación
+  renewalRevision4Date DateTime? // igual que revision4Date pero del ciclo de renovación
+  renewalRevision8Date DateTime? // igual que revision8Date pero del ciclo de renovación
+  phase      Int      @default(1) // Fase 1-4 del proceso, la ajusta la coach
+
+  plan             PatientPlan?
+  checklistItems   PatientChecklistItem[]
+  checkIns         CheckIn[]
+  progressCheckpoints ProgressCheckpoint[]
+  intakeScreening  IntakeScreening?
+  symptomForm      SymptomForm?
+  quincenalForms   QuincenalForm[]
+  celebrationForm  CelebrationForm?
+  closingForm      ClosingForm?
+  planFiles        PatientPlanFile[]
+  eatingChecklist  EatingChecklist?
+  ruleAuditForm    RuleAuditForm?
+  commitmentForm   CommitmentForm?
+  appointments     Appointment[]
+  mealDiaryEntries MealDiaryEntry[]
+  clinicalNotes    ClinicalNote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// El plan nutricional + suplementación de "Sesiones", editable por la coach.
+// Todo lo de aquí es personalizado por paciente (a diferencia de las guías
+// genéricas, que viven en Resource). El resto de contenido de Sesiones
+// (FODMAP, equivalencias, recetas...) es igual para todas y se muestra desde
+// Resource con category "Plan y sesiones".
+model PatientPlan {
+  id                        String         @id @default(cuid())
+  patientProfileId          String         @unique
+  patientProfile            PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  actionPlanFirstMonth      String? // "Plan de acción primer mes"
+  nutritionalPlan           String? // "Plan nutricional" (texto o enlace)
+  supplementation           String? // "Suplementación pautada"
+  videoComoEmpezar          String? // 🎥 "Cómo empezar sin agobiarte"
+  videoQueEstamosBuscando   String? // 🎥 "Qué estamos buscando con estos ajustes"
+  videoLoomPlan             String? // 🎥 "Loom tu plan"
+  updatedAt                 DateTime @updatedAt
+}
+
+// PDFs personalizados por paciente que sube la coach: 4 huecos por categoría
+// (Plan de acción, Plan nutricional, Suplementación, Recetas), y 4 huecos con
+// nombre propio para "Fase de reintroducción" (1º/2º/3º introducción,
+// Registro de síntomas) — esa fase se desbloquea sola en cuanto existe el
+// primero de los cuatro, ya no la desbloquea la coach a mano.
+// Sustituye al texto libre que tenía antes PatientPlan para estos primeros.
+model PatientPlanFile {
+  id               String         @id @default(cuid())
+  patientProfileId String
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  category         String // "accion" | "nutricional" | "suplementacion" | "recetas" | "reintroduccion"
+  cycle            Int            @default(1) // 1 = programa original, 2 = renovación (solo accion/nutricional/suplementacion)
+  slot             Int // 1-4
+  url              String?
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([patientProfileId, category, cycle, slot])
+}
+
+// Academia: Módulo > Lección (contenido compartido por todas las pacientes)
+model Module {
+  id          String     @id @default(cuid())
+  order       Int
+  icon        String?
+  title       String
+  description String?
+  lessons     Lesson[]
+  resources   Resource[]
+}
+
+model Lesson {
+  id       String  @id @default(cuid())
+  moduleId String
+  module   Module  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  order    Int
+  title    String
+  videoUrl String?
+  body     String?
+}
+
+// Recursos (PDFs, guías, recetas, formularios). Ya no tienen página propia:
+// se muestran dentro de Academia (ligados a un módulo), Sesiones (categoría
+// "Plan y sesiones") o la Bienvenida (categoría "Bienvenida", sin moduleId).
+model Resource {
+  id          String  @id @default(cuid())
+  title       String
+  description String? // texto opcional que explica el recurso (no todos lo necesitan)
+  category    String // "Bienvenida" | "Plan y sesiones" | etiqueta libre
+  type        String // "PDF" | "Guía" | "Receta" | "Formulario"
+  url         String? // opcional: algunos recursos están anunciados pero el enlace aún no existe
+  order       Int     @default(0)
+  moduleId    String?
+  module   Module? @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+}
+
+// Plantilla compartida de la hoja de ruta de 12 semanas (bloques de semanas)
+model WeekBlock {
+  id     String                   @id @default(cuid())
+  order  Int
+  label  String // p.ej. "Semanas 1-2. Empezamos a trabajar la digestión"
+  items  WeekBlockItemTemplate[]
+}
+
+model WeekBlockItemTemplate {
+  id              String                 @id @default(cuid())
+  weekBlockId     String
+  weekBlock       WeekBlock              @relation(fields: [weekBlockId], references: [id], onDelete: Cascade)
+  order           Int
+  label           String
+  patientProgress PatientChecklistItem[]
+}
+
+// Marca de completado por paciente y por item de la hoja de ruta — esto es lo
+// que permite calcular una barra de progreso real (algo que en Notion no era
+// posible sin convertir la hoja de ruta en base de datos).
+model PatientChecklistItem {
+  id               String                 @id @default(cuid())
+  patientProfileId String
+  patientProfile   PatientProfile         @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  itemTemplateId   String
+  itemTemplate     WeekBlockItemTemplate  @relation(fields: [itemTemplateId], references: [id], onDelete: Cascade)
+  completed        Boolean                @default(false)
+  completedAt      DateTime?
+
+  @@unique([patientProfileId, itemTemplateId])
+}
+
+// Seguimiento quincenal (formularios que hoy rellena la paciente en Notion)
+model CheckIn {
+  id                   String         @id @default(cuid())
+  patientProfileId     String
+  patientProfile       PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  weekNumber           Int
+  symptomsText         String?
+  energyLevel          Int?
+  notes                String?
+  coachResponseVideoUrl String? // 🎥 "Loom respuesta" — la coach responde en vídeo a este seguimiento
+  createdAt            DateTime       @default(now())
+}
+
+// "Mi progreso sin báscula" — autoevaluación de la propia paciente en las
+// semanas 1, 6 y 12, para ver su evolución sin depender del peso.
+model ProgressCheckpoint {
+  id                String         @id @default(cuid())
+  patientProfileId  String
+  patientProfile    PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  week              Int // 1 | 6 | 12
+  daysBloating      String? // "Días de hinchazón/semana"
+  toleratedFoods    String? // "Alimentos que sientes que toleras"
+  avoidsPlans       String? // "Evitas planes por tu digestión"
+  confidence        Int? // "Confianza en comer sin miedo (0-10)"
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([patientProfileId, week])
+}
+
+// "Autocribado de inicio" — cuestionario de 8 preguntas que rellena la
+// paciente en la semana 1, antes de empezar. Se revisa junto a ella en la
+// semana 12 para ver la evolución (comparte preguntas con ProgressCheckpoint).
+model IntakeScreening {
+  id                     String         @id @default(cuid())
+  patientProfileId       String         @unique
+  patientProfile         PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  bloatingFrequency      String? // "¿Cuántos días a la semana notas hinchazón?"
+  unbuttonPants          String? // "¿Te ha pasado tener que desabrocharte el pantalón después de comer?"
+  intolerantFoods        String? // "¿Qué alimentos sientes que ya no toleras bien?"
+  avoidsPlans            String? // "¿Evitas hacer planes por miedo a cómo te vas a encontrar?"
+  timeThinkingDigestion  String? // "¿Cuánto tiempo pasas pensando en tu digestión o en qué vas a comer?"
+  triedRestrictiveDiets  String? // "¿Ya has probado dietas restrictivas o antibióticos para el SIBO sin mejorar?"
+  confidence             Int? // "Del 0 al 10, ¿cuánto confías en volver a comer sin miedo?"
+  oneThingToChange       String? // "Si pudieras cambiar una cosa de tu digestión hoy, ¿cuál sería?"
+  completedAt            DateTime?
+  updatedAt              DateTime       @updatedAt
+}
+
+// "Formulario extendido de síntomas" — antes era un PDF que la paciente
+// descargaba, rellenaba a mano y enviaba por email. Los campos identificativos
+// clave quedan como columnas propias; el resto de las ~50 preguntas (hábitos,
+// síntomas digestivos, preferencias alimentarias, estilo de vida, diario de
+// comidas de 48h) se guardan en `answers` como pares pregunta→respuesta.
+model SymptomForm {
+  id               String         @id @default(cuid())
+  patientProfileId String         @unique
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  fullName         String?
+  dni              String?
+  birthDate        String?
+  phone            String?
+  email            String?
+  address          String?
+  postalCode       String?
+  city             String?
+  age              Int?
+  height           Int?
+  weight           Int?
+  occupation       String?
+  consultReason    String?
+  answers          Json // resto de respuestas del formulario, { "pregunta": "respuesta" }
+  submittedAt      DateTime?
+  updatedAt        DateTime       @updatedAt
+}
+
+// "Revisión quincenal" — antes era una hoja de cálculo de Google externa que
+// rellenaba la paciente en semana 2, 6 y 10. Misma plantilla real (preguntas
+// y opciones) para las 3 semanas, una fila por semana.
+model QuincenalForm {
+  id               String         @id @default(cuid())
+  patientProfileId String
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  cycle            Int            @default(1) // 1 = programa original, 2 = renovación (otras 12 semanas)
+  week             Int // 2 | 6 | 10
+  answers          Json // { "pregunta": "respuesta" }
+  coachVideoUrl    String? // 🎥 "Vídeo personalizado" que la coach sube para esa semana
+  submittedAt      DateTime?
+  reviewedAt       DateTime? // la coach la marca como revisada tras leerla, para el aviso de "por revisar" en Inicio
+  reminderSentAt   DateTime? // recordatorio del día exacto ya enviado (evita reenviarlo)
+  reminderSentDayBeforeAt DateTime? // recordatorio del día antes ya enviado (evita reenviarlo, aparte del anterior)
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([patientProfileId, cycle, week])
+}
+
+// "Diario de comidas y síntomas" — antes era un Google Sheet con una pestaña
+// por semana (1-12) y una fila por día (comidas + digestión + baño +
+// observaciones). Migrado a la app: una fila por día real de paciente, se
+// va guardando suelto (no hace falta rellenar todo de golpe) y se puede
+// editar después.
+model MealDiaryEntry {
+  id                 String         @id @default(cuid())
+  patientProfileId   String
+  patientProfile     PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  cycle              Int            @default(1) // 1 = programa original, 2 = renovación (otras 12 semanas)
+  week               Int // 1-12
+  day                Int // 1 = lunes ... 7 = domingo
+  breakfast          String?
+  breakfastDigestion String?
+  lunch              String?
+  lunchDigestion     String?
+  dinner             String?
+  dinnerDigestion    String?
+  bathroom           String?
+  notes              String? // "Observaciones generales del día"
+  updatedAt          DateTime       @updatedAt
+
+  @@unique([patientProfileId, cycle, week, day])
+}
+
+// "Mi momento de celebración · Semana 6" — antes era un PDF que la paciente
+// descargaba y rellenaba a mano. Preguntas reales del PDF original.
+model CelebrationForm {
+  id                  String         @id @default(cuid())
+  patientProfileId    String         @unique
+  patientProfile      PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  howWereYou          String? // "¿Cómo estabas cuando empezaste?"
+  whatWorriedYou      String? // "¿Qué es lo que más te preocupaba entonces?"
+  whatChanged         String? // "¿Qué ha cambiado desde que empezamos, aunque sea pequeño?"
+  whatCanYouDoNow     String? // "¿Qué puedes hacer ahora que antes no podías o evitabas?"
+  howWillYouCelebrate String? // "¿Qué vas a hacer esta semana para celebrarlo?"
+  submittedAt         DateTime?
+  updatedAt           DateTime       @updatedAt
+}
+
+// "Formulario de cierre y valoración" — antes un Google Form externo
+// (Módulo 4). Preguntas reales del formulario original ("Valoración final").
+model ClosingForm {
+  id                       String         @id @default(cuid())
+  patientProfileId         String         @unique
+  patientProfile           PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  name                     String? // "Nombre"
+  howArrived               String? // "¿Cómo llegaste al inicio del acompañamiento?"
+  howNow                   String? // "¿Cómo te encuentras ahora?"
+  whatChanged              String? // "¿Qué ha cambiado en tu digestión desde que empezamos?"
+  whatUnderstood           String? // "¿Qué has entendido sobre tus síntomas que antes no tenías claro?"
+  whatStoppedConditioning  String? // "¿Qué ha dejado de condicionar tu día a día?"
+  mostUseful               String? // "¿Qué parte del proceso te ha resultado más útil o te ha ayudado más?"
+  whatWouldYouSay          String? // "Si tuvieras que explicar este proceso a alguien..."
+  testimonialConsent       String? // "Uso del testimonio (opcional)" — Sí | Sí, pero prefiero revisarlo antes | Prefiero que no
+  submittedAt              DateTime?
+  updatedAt                DateTime       @updatedAt
+}
+
+// "Cómo comer, no solo qué comer" (Módulo 2) — antes un PDF descargable con
+// un checklist de 5 pasos y un registro semanal de una palabra al día.
+// A diferencia de los demás formularios, es un "documento vivo": no se
+// bloquea nunca, la paciente vuelve a marcarlo/actualizarlo cuando quiera.
+model EatingChecklist {
+  id               String         @id @default(cuid())
+  patientProfileId String         @unique
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  step1            Boolean        @default(false) // "La pausa antes de comer"
+  step2            Boolean        @default(false) // "Sin pantallas"
+  step3            Boolean        @default(false) // "Mastica de verdad"
+  step4            Boolean        @default(false) // "Mínimo 20 minutos"
+  step5            Boolean        @default(false) // "Para en el 6-7"
+  monday           String? // "Mi semana" — una palabra por día
+  tuesday          String?
+  wednesday        String?
+  thursday         String?
+  friday           String?
+  saturday         String?
+  sunday           String?
+  updatedAt        DateTime       @updatedAt
+}
+
+// "Auditoría de reglas · Semana 8" (Módulo 1) — antes un PDF descargable.
+// 4 reglas autoimpuestas: qué regla es, de dónde viene / si sigue teniendo
+// sentido, y qué decide hacer con ella. Se bloquea tras enviarlo, como el
+// resto de formularios de una sola vez.
+model RuleAuditForm {
+  id               String         @id @default(cuid())
+  patientProfileId String         @unique
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  rule1Text        String?
+  rule1Reflection  String?
+  rule1Decision    String? // "La mantengo" | "La pruebo a romper poco a poco" | "Ya no tiene sentido, la dejo ir"
+  rule2Text        String?
+  rule2Reflection  String?
+  rule2Decision    String?
+  rule3Text        String?
+  rule3Reflection  String?
+  rule3Decision    String?
+  rule4Text        String?
+  rule4Reflection  String?
+  rule4Decision    String?
+  submittedAt      DateTime?
+  updatedAt        DateTime       @updatedAt
+}
+
+// "Tu línea de intentos y tu carta de compromiso · Semana 2" (Módulo 1) —
+// ejercicio real del PDF: una tabla de hasta 6 intentos previos (qué probó,
+// cuándo, cómo le fue) + una carta breve a sí misma. Se guarda para que la
+// paciente y la coach la puedan volver a leer en la semana 12.
+model CommitmentForm {
+  id                 String         @id @default(cuid())
+  patientProfileId   String         @unique
+  patientProfile     PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  attempt1What       String?
+  attempt1When       String?
+  attempt1HowItWent  String?
+  attempt2What       String?
+  attempt2When       String?
+  attempt2HowItWent  String?
+  attempt3What       String?
+  attempt3When       String?
+  attempt3HowItWent  String?
+  attempt4What       String?
+  attempt4When       String?
+  attempt4HowItWent  String?
+  attempt5What       String?
+  attempt5When       String?
+  attempt5HowItWent  String?
+  attempt6What       String?
+  attempt6When       String?
+  attempt6HowItWent  String?
+  letter             String? // "Tu carta de compromiso"
+  submittedAt        DateTime?
+  updatedAt          DateTime       @updatedAt
+}
+
+// Agenda de la coach: citas con pacientes (videollamadas de seguimiento,
+// primera valoración, etc.). La gestiona la coach a mano, no hay reserva
+// desde el lado de la paciente.
+model Appointment {
+  id               String          @id @default(cuid())
+  patientProfileId String? // null = cita general de la coach, sin paciente asociada
+  patientProfile   PatientProfile? @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  title            String? // solo se usa cuando no hay paciente (con paciente, el título es su nombre)
+  date             DateTime
+  notes            String?
+  source           String? // "revision4" | "revision8" si la creó sola el calendario de Revisiones; null si la creó la coach a mano
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([date])
+  @@unique([patientProfileId, source])
+}
+
+// Historial clínico privado de la coach — apuntes sueltos con fecha (p.ej.
+// una duda que la paciente le escribe por WhatsApp), no un único campo de
+// texto. Reemplaza al antiguo PatientProfile.notes (nunca llegó a tener UI).
+model ClinicalNote {
+  id               String         @id @default(cuid())
+  patientProfileId String
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  date             DateTime // fecha del apunte — la elige la coach, no tiene por qué ser "hoy"
+  text             String
+  createdAt        DateTime       @default(now())
+
+  @@index([patientProfileId, date])
+}
+
+// Conexión con Google Drive para la copia de seguridad automática. Solo hay
+// una fila (panel de coach de una única usuaria) — el id fijo "singleton"
+// evita crear una segunda fila por accidente.
+model BackupConfig {
+  id           String   @id @default("singleton")
+  refreshToken String
+  folderId     String?
+  connectedAt  DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

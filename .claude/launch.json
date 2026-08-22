@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "academia-dev",
+      "runtimeExecutable": "C:\\Users\\jbord\\Desktop\\Academia\\scripts\\dev.cmd",
+      "runtimeArgs": [],
+      "port": 3000
+    }
+  ]
+}

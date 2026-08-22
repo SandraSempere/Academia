@@ -1,0 +1,149 @@
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { PERSONAL_FIELDS, SECTIONS } from "@/lib/symptom-form-fields";
+import { slugify } from "@/lib/slugify";
+import {
+  BRAND_TERRACOTA,
+  BRAND_CARBON,
+  BRAND_CREMA,
+  PAGE_WIDTH,
+  PAGE_HEIGHT,
+  MARGIN,
+  CONTENT_WIDTH,
+  wrapText,
+} from "@/lib/pdf-generation";
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ patientId: string }> },
+) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "COACH") {
+    return new Response("No autorizado", { status: 401 });
+  }
+
+  const { patientId } = await params;
+  const patient = await prisma.user.findUnique({
+    where: { id: patientId },
+    include: { patientProfile: { include: { symptomForm: true } } },
+  });
+  const symptomForm = patient?.patientProfile?.symptomForm;
+  if (!symptomForm?.submittedAt) {
+    return new Response("No encontrado", { status: 404 });
+  }
+
+  const pdf = await PDFDocument.create();
+  const bodyFont = await pdf.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const italicFont = await pdf.embedFont(StandardFonts.HelveticaOblique);
+
+  let page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  let y = PAGE_HEIGHT - MARGIN;
+
+  function newPageIfNeeded(neededHeight: number) {
+    if (y - neededHeight < MARGIN) {
+      page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      y = PAGE_HEIGHT - MARGIN;
+    }
+  }
+
+  page.drawRectangle({ x: 0, y: PAGE_HEIGHT - 110, width: PAGE_WIDTH, height: 110, color: BRAND_TERRACOTA });
+  page.drawText("Formulario de síntomas", {
+    x: MARGIN,
+    y: PAGE_HEIGHT - 60,
+    size: 22,
+    font: boldFont,
+    color: rgb(1, 1, 1),
+  });
+  page.drawText(patient!.name ?? "", {
+    x: MARGIN,
+    y: PAGE_HEIGHT - 84,
+    size: 11,
+    font: bodyFont,
+    color: rgb(1, 1, 1),
+  });
+  y = PAGE_HEIGHT - 140;
+
+  page.drawText(
+    `Enviado el ${new Date(symptomForm.submittedAt).toLocaleDateString("es-ES")}`,
+    { x: MARGIN, y, size: 10, font: italicFont, color: BRAND_CARBON },
+  );
+  y -= 28;
+
+  function drawSectionTitle(title: string) {
+    newPageIfNeeded(30);
+    page.drawText(title.toUpperCase(), { x: MARGIN, y, size: 10, font: boldFont, color: BRAND_TERRACOTA });
+    y -= 18;
+  }
+
+  function drawField(label: string, value: string) {
+    if (!value.trim()) return;
+    const questionLines = wrapText(label, boldFont, 11, CONTENT_WIDTH);
+    const answerLines = wrapText(value, bodyFont, 11, CONTENT_WIDTH);
+    const blockHeight = questionLines.length * 14 + answerLines.length * 14 + 14;
+
+    newPageIfNeeded(blockHeight);
+
+    for (const line of questionLines) {
+      page.drawText(line, { x: MARGIN, y, size: 11, font: boldFont, color: BRAND_CARBON });
+      y -= 14;
+    }
+    for (const line of answerLines) {
+      page.drawText(line, { x: MARGIN, y, size: 11, font: bodyFont, color: BRAND_CARBON });
+      y -= 14;
+    }
+    y -= 10;
+  }
+
+  drawSectionTitle("Tus datos");
+  for (const field of PERSONAL_FIELDS) {
+    const raw = symptomForm[field.id as keyof typeof symptomForm];
+    if (raw === null || raw === undefined || raw === "") continue;
+    drawField(field.label, String(raw));
+  }
+
+  const answers = (symptomForm.answers ?? {}) as Record<string, string | string[]>;
+  for (const section of SECTIONS) {
+    const visibleFields = section.fields.filter((f) => {
+      const v = answers[f.id];
+      return Array.isArray(v) ? v.length > 0 : !!v;
+    });
+    if (visibleFields.length === 0) continue;
+
+    drawSectionTitle(section.title);
+    for (const field of visibleFields) {
+      const v = answers[field.id];
+      drawField(field.label, Array.isArray(v) ? v.join(", ") : v);
+    }
+  }
+
+  newPageIfNeeded(60);
+  page.drawRectangle({ x: MARGIN, y: y - 4, width: CONTENT_WIDTH, height: 1, color: BRAND_CREMA });
+  y -= 24;
+  page.drawText("Sandra Sempere | Dietista Integrativa", {
+    x: MARGIN,
+    y,
+    size: 9,
+    font: italicFont,
+    color: BRAND_CARBON,
+  });
+  y -= 13;
+  page.drawText("info@sandrasempere.com · www.sandrasempere.com · Col. COPTESSCV nº 3074", {
+    x: MARGIN,
+    y,
+    size: 8,
+    font: bodyFont,
+    color: BRAND_CARBON,
+  });
+
+  const bytes = await pdf.save();
+  const filename = `formulario-sintomas-${slugify(patient!.name ?? "paciente")}.pdf`;
+
+  return new Response(new Uint8Array(bytes), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+    },
+  });
+}

@@ -4,9 +4,9 @@ import { useTransition } from "react";
 import { saveProgressCheckpoint } from "@/app/(app)/progreso/actions";
 
 type CheckpointData = {
-  daysBloating: string;
-  toleratedFoods: string;
-  avoidsPlans: string;
+  daysBloating: string | null;
+  toleratedFoods: string | null;
+  avoidsPlans: string | null;
   confidence: number | null;
 };
 

@@ -318,6 +318,17 @@ const WEEK_BLOCKS = [
 ];
 
 async function main() {
+  // Seguro de ejecutar en cada arranque de producción (ver package.json):
+  // si ya hay algún usuario, es que esto ya se sembró antes — no repetir,
+  // porque el resto de este script usa .create() sin control de
+  // duplicados (volvería a crear los módulos/recursos o fallaría por el
+  // email ya existente de Sandra).
+  const existingUsers = await prisma.user.count();
+  if (existingUsers > 0) {
+    console.log("Ya hay datos en la base de datos — no se vuelve a sembrar.");
+    return;
+  }
+
   console.log("Sembrando módulos...");
   const moduleIdByOrder = new Map<number, string>();
   for (const mod of MODULES) {

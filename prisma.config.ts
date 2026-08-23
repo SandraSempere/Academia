@@ -3,6 +3,18 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+// `prisma migrate deploy` (parte de "start" en package.json) necesita esta
+// URL en el momento exacto en que arranca el contenedor en producción — si
+// falla aquí con "datasource.url property is required", casi siempre es que
+// DATABASE_URL no está realmente puesta en el entorno donde corre "start"
+// (typo en el nombre, puesta en el servicio/entorno equivocado del hosting,
+// o falta redeploy tras guardarla) — no un problema de este archivo.
+if (!process.env["DATABASE_URL"]) {
+  throw new Error(
+    "Falta la variable de entorno DATABASE_URL. Compruébala en el panel de tu hosting (nombre exacto, sin comillas, en el servicio y entorno correctos) y vuelve a desplegar.",
+  );
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {

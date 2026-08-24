@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Montserrat, Lato } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -18,6 +18,20 @@ const lato = Lato({
 export const metadata: Metadata = {
   title: "Origen Digestivo · Academia",
   description: "Tu espacio de acompañamiento digestivo",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Origen Digestivo",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#e8a7a1",
 };
 
 export default function RootLayout({

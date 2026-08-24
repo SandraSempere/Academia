@@ -33,8 +33,14 @@ export default auth((req) => {
   return NextResponse.next();
 });
 
+// Todas las rutas /api/* se protegen a sí mismas (auth() o el secreto de
+// /api/cron/*) — no dependen de este middleware, que solo debe gobernar la
+// navegación entre páginas. Dejarlas pasar por aquí bloqueaba de raíz el
+// cron externo de recordatorios: sin cookie de sesión, cualquier petición
+// (incluido un cron sin navegador) se redirigía a /login en vez de llegar
+// a la ruta.
 export const config = {
   matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!api/|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

@@ -17,8 +17,12 @@ async function requireCoach() {
 
 function dbFilePath() {
   const url = process.env.DATABASE_URL ?? "file:./dev.db";
-  const relative = url.replace(/^file:/, "");
-  return path.join(process.cwd(), relative);
+  const filePath = url.replace(/^file:/, "");
+  // En local es relativa ("./dev.db") y hay que unirla al cwd; en
+  // producción es absoluta (vive en el volumen, p.ej. "/app/public/...")
+  // y hay que usarla tal cual — unirla igualmente con cwd la duplicaba
+  // ("/app" + "/app/public/...").
+  return path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
 }
 
 function timestamp() {

@@ -5,7 +5,7 @@ import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { sendPasswordResetEmail } from "@/lib/email";
+import { sendPasswordResetEmail, sendNotificationEmail } from "@/lib/email";
 
 // Cambio de contraseña propio — sirve tanto a pacientes (para dejar de
 // depender de la "contraseña provisional"/reiniciada que les puso la coach)
@@ -27,17 +27,37 @@ export async function changePassword(formData: FormData) {
     throw new Error("Las dos contraseñas nuevas no coinciden.");
   }
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { patientProfile: true },
+  });
   if (!user) throw new Error("Usuario no encontrado");
 
   const valid = await bcrypt.compare(currentPassword, user.passwordHash);
   if (!valid) throw new Error("La contraseña actual no es correcta.");
+
+  // Primera vez que una paciente cambia su contraseña provisional = se ha
+  // unido de verdad al programa (antes de esto la cuenta existe, pero la
+  // creó la coach, no la ha usado la paciente todavía).
+  const isFirstActivation = user.role === "PATIENT" && user.mustChangePassword && !!user.patientProfile;
 
   const passwordHash = await bcrypt.hash(newPassword, 10);
   await prisma.user.update({
     where: { id: user.id },
     data: { passwordHash, mustChangePassword: false },
   });
+
+  if (isFirstActivation && user.patientProfile) {
+    await prisma.patientProfile.update({
+      where: { id: user.patientProfile.id },
+      data: { activatedAt: new Date() },
+    });
+    await sendNotificationEmail(
+      "🎉 Nueva paciente",
+      `${user.name} ha entrado por primera vez y ha empezado tu programa.`,
+    );
+    revalidatePath("/coach");
+  }
 
   revalidatePath("/cambiar-contrasena");
   revalidatePath("/");
@@ -79,10 +99,16 @@ export async function resetPasswordWithToken(formData: FormData) {
     throw new Error("Las dos contraseñas no coinciden.");
   }
 
-  const resetToken = await prisma.passwordResetToken.findUnique({ where: { token } });
+  const resetToken = await prisma.passwordResetToken.findUnique({
+    where: { token },
+    include: { user: { include: { patientProfile: true } } },
+  });
   if (!resetToken || resetToken.usedAt || resetToken.expiresAt < new Date()) {
     throw new Error("Este enlace no es válido o ha caducado. Pide uno nuevo.");
   }
+
+  const isFirstActivation =
+    resetToken.user.role === "PATIENT" && resetToken.user.mustChangePassword && !!resetToken.user.patientProfile;
 
   const passwordHash = await bcrypt.hash(newPassword, 10);
   await prisma.$transaction([
@@ -94,7 +120,22 @@ export async function resetPasswordWithToken(formData: FormData) {
       where: { id: resetToken.id },
       data: { usedAt: new Date() },
     }),
+    ...(isFirstActivation
+      ? [
+          prisma.patientProfile.update({
+            where: { id: resetToken.user.patientProfile!.id },
+            data: { activatedAt: new Date() },
+          }),
+        ]
+      : []),
   ]);
+
+  if (isFirstActivation) {
+    await sendNotificationEmail(
+      "🎉 Nueva paciente",
+      `${resetToken.user.name} ha entrado por primera vez y ha empezado tu programa.`,
+    );
+  }
 
   return { ok: true as const };
 }

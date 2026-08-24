@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPatientsWithStatus } from "@/lib/patient";
 import { isTimeTbd, formularioWeekOverdue } from "@/lib/revisiones";
+import { markPatientActivationSeen } from "@/app/coach/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ export default async function CoachHomePage() {
   const todayEnd = new Date(now);
   todayEnd.setHours(23, 59, 59, 999);
 
-  const [{ patients, activas, finalizadas }, todayAppointments, upcomingAppointments, quincenalToReview, autoAppointments] =
+  const [{ patients, activas, finalizadas }, todayAppointments, upcomingAppointments, quincenalToReview, autoAppointments, newlyActivated] =
     await Promise.all([
       getPatientsWithStatus(),
       prisma.appointment.findMany({
@@ -88,6 +89,11 @@ export default async function CoachHomePage() {
         where: { source: { not: null } },
         orderBy: { date: "asc" },
         include: { patientProfile: { include: { user: true } } },
+      }),
+      prisma.patientProfile.findMany({
+        where: { activatedAt: { not: null }, activatedSeenAt: null },
+        orderBy: { activatedAt: "desc" },
+        include: { user: true },
       }),
     ]);
 
@@ -113,6 +119,35 @@ export default async function CoachHomePage() {
         <p className="text-sm text-foreground/60">Hoy es</p>
         <h1 className="text-2xl font-semibold">{dateLabel}</h1>
       </div>
+
+      {newlyActivated.length > 0 && (
+        <div className="rounded-2xl border border-black/5 bg-brand-tertiary-soft p-5">
+          <p className="font-semibold">🎉 Nuevas pacientes</p>
+          <div className="mt-3 flex flex-col gap-2">
+            {newlyActivated.map((profile) => (
+              <div
+                key={profile.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-blanco-roto px-3 py-2 text-sm"
+              >
+                <Link href={`/coach/pacientes/${profile.user.id}`} className="font-medium hover:text-brand-primary">
+                  {profile.user.name} se ha unido a tu programa
+                </Link>
+                <div className="flex items-center gap-3">
+                  <span className="text-foreground/60">
+                    {profile.activatedAt && new Date(profile.activatedAt).toLocaleDateString("es-ES")}
+                  </span>
+                  <form action={markPatientActivationSeen}>
+                    <input type="hidden" name="userId" value={profile.user.id} />
+                    <button type="submit" className="text-xs text-brand-primary underline hover:opacity-80">
+                      Marcar como visto
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Pacientes" value={patients.length} />

@@ -181,6 +181,21 @@ export async function markQuincenalReviewed(formData: FormData) {
   revalidatePath("/coach");
 }
 
+export async function markPatientActivationSeen(formData: FormData) {
+  await requireCoach();
+
+  const userId = String(formData.get("userId") ?? "");
+  const profile = await prisma.patientProfile.findUnique({ where: { userId } });
+  if (!profile) throw new Error("Paciente no encontrada");
+
+  await prisma.patientProfile.update({
+    where: { id: profile.id },
+    data: { activatedSeenAt: new Date() },
+  });
+
+  revalidatePath("/coach");
+}
+
 const PLAN_FILE_CATEGORIES = ["accion", "nutricional", "suplementacion", "recetas", "reintroduccion"];
 
 export async function uploadPatientPlanFile(formData: FormData) {

@@ -57,6 +57,8 @@ model PatientProfile {
   renewalRevision4Date DateTime? // igual que revision4Date pero del ciclo de renovación
   renewalRevision8Date DateTime? // igual que revision8Date pero del ciclo de renovación
   phase      Int      @default(1) // Fase 1-4 del proceso, la ajusta la coach
+  activatedAt     DateTime? // primera vez que la paciente entra y cambia su contraseña provisional — "se ha unido de verdad"
+  activatedSeenAt DateTime? // la coach ya vio el aviso de "nueva paciente" en Inicio
 
   plan             PatientPlan?
   checklistItems   PatientChecklistItem[]

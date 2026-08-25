@@ -54,18 +54,40 @@ export async function sendPatientFormReminderEmail(
     return;
   }
 
-  const whenText = when === "hoy" ? "Hoy toca" : "Mañana toca";
   // Igual que en el resto de avisos con ciclo (revisión quincenal, PDFs...):
   // si algún día coincide que a la misma paciente le toca la misma semana en
   // el programa original y en la renovación el mismo día, que los dos
   // emails digan cuál es cuál en vez de llegar con el texto idéntico.
   const cycleSuffix = cycle === 2 ? " · Renovación" : "";
+  const subject =
+    when === "hoy"
+      ? `Hoy toca tu seguimiento${cycleSuffix} 📋`
+      : `Mañana toca tu seguimiento${cycleSuffix} 📋`;
+  const text =
+    when === "hoy"
+      ? `¡Hola ${name}!
+
+Hoy toca tu seguimiento${cycleSuffix} de la semana ${week}. Entra en tu espacio de Origen Digestivo y rellena el formulario — así puedo ver cómo estás evolucionando de verdad y ajustar lo que haga falta para seguir avanzando contigo.
+
+No necesitas hacerlo perfecto, solo contarme cómo estás.
+
+Un abrazo,
+Sandra`
+      : `¡Hola ${name}!
+
+Mañana es tu seguimiento${cycleSuffix} de la semana ${week}. Es un buen momento para parar un momento y pensar en cómo has ido estos días — qué ha mejorado, qué sigue costando, cómo te sientes.
+
+Cuando puedas, entra en tu espacio de Origen Digestivo y prepárate para rellenar el formulario mañana.
+
+Nos vemos ahí 🌿
+Sandra`;
+
   try {
     await t.sendMail({
       from: `"Origen Digestivo" <${process.env.EMAIL_USER}>`,
       to,
-      subject: `${whenText} tu revisión quincenal${cycleSuffix} · Semana ${week}`,
-      text: `Hola ${name || ""},\n\n${whenText.toLowerCase()} rellenar tu revisión quincenal${cycleSuffix.toLowerCase()} de la semana ${week}. Entra en tu Academia y la encontrarás en Mi progreso.\n\nUn abrazo,\nSandra`,
+      subject,
+      text,
     });
   } catch (err) {
     console.error("Error enviando recordatorio a paciente:", err);

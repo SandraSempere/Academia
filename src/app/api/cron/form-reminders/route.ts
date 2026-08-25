@@ -9,11 +9,9 @@ import { sendPatientFormReminderEmail } from "@/lib/email";
 // Comprueba tanto el ciclo original como el de renovación (si está
 // activada), cada uno con sus propias fechas.
 //
-// Todavía no está conectada a ningún disparador automático (ni tarea
-// programada ni cron de hosting) — Sandra pidió dejarlo listo para llamar,
-// sin decidir aún dónde se aloja la app en producción. Se protege con
-// CRON_SECRET para que se pueda exponer sin más protección el día que se
-// conecte un cron externo.
+// En producción la llama un servicio de Cron Job aparte en Railway
+// ("Recordatorio pacientes", mismo repo, comando propio), una vez al día.
+// Protegida con CRON_SECRET para que solo ese cron pueda llamarla.
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (secret) {

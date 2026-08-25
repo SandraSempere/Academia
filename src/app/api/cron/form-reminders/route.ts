@@ -55,7 +55,7 @@ export async function GET(request: Request) {
         update: { [sentField]: today },
       });
 
-      await sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when);
+      await sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, cycle);
       remindersSent++;
     }
   }

@@ -46,6 +46,7 @@ export async function sendPatientFormReminderEmail(
   name: string,
   week: 2 | 6 | 10,
   when: "hoy" | "mañana",
+  cycle: 1 | 2 = 1,
 ) {
   const t = getTransporter();
   if (!t) {
@@ -54,12 +55,17 @@ export async function sendPatientFormReminderEmail(
   }
 
   const whenText = when === "hoy" ? "Hoy toca" : "Mañana toca";
+  // Igual que en el resto de avisos con ciclo (revisión quincenal, PDFs...):
+  // si algún día coincide que a la misma paciente le toca la misma semana en
+  // el programa original y en la renovación el mismo día, que los dos
+  // emails digan cuál es cuál en vez de llegar con el texto idéntico.
+  const cycleSuffix = cycle === 2 ? " · Renovación" : "";
   try {
     await t.sendMail({
       from: `"Origen Digestivo" <${process.env.EMAIL_USER}>`,
       to,
-      subject: `${whenText} tu revisión quincenal · Semana ${week}`,
-      text: `Hola ${name || ""},\n\n${whenText.toLowerCase()} rellenar tu revisión quincenal de la semana ${week}. Entra en tu Academia y la encontrarás en Mi progreso.\n\nUn abrazo,\nSandra`,
+      subject: `${whenText} tu revisión quincenal${cycleSuffix} · Semana ${week}`,
+      text: `Hola ${name || ""},\n\n${whenText.toLowerCase()} rellenar tu revisión quincenal${cycleSuffix.toLowerCase()} de la semana ${week}. Entra en tu Academia y la encontrarás en Mi progreso.\n\nUn abrazo,\nSandra`,
     });
   } catch (err) {
     console.error("Error enviando recordatorio a paciente:", err);

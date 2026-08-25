@@ -103,7 +103,10 @@ export async function saveSymptomForm(formData: FormData) {
     update: data,
   });
 
-  await sendNotificationEmail(
+  // Sin await: si el email va lento o falla, que no deje a la paciente
+  // esperando con el formulario colgado — ya está guardado, el aviso a la
+  // coach es secundario y se manda de fondo.
+  sendNotificationEmail(
     "📝 Nuevo formulario de síntomas",
     `${profile.user.name ?? "Una paciente"} ha rellenado el Formulario de síntomas.`,
   );
@@ -145,7 +148,7 @@ export async function saveQuincenalForm(formData: FormData) {
   });
 
   const cycleSuffix = cycle === 2 ? " · Renovación" : "";
-  await sendNotificationEmail(
+  sendNotificationEmail(
     `📋 Revisión quincenal${cycleSuffix} · Semana ${week}`,
     `${profile.user.name ?? "Una paciente"} ha rellenado la Revisión quincenal${cycleSuffix.toLowerCase()} de la semana ${week}.`,
   );
@@ -209,7 +212,7 @@ export async function saveClosingForm(formData: FormData) {
     update: { ...data, submittedAt: new Date() },
   });
 
-  await sendNotificationEmail(
+  sendNotificationEmail(
     "🎓 Formulario de cierre y valoración",
     `${profile.user.name ?? "Una paciente"} ha rellenado el Formulario de cierre y valoración.`,
   );

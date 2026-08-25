@@ -7,11 +7,23 @@ function getTransporter() {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) return null;
 
   transporter = nodemailer.createTransport({
-    service: "gmail",
+    // Puerto 587 + STARTTLS en vez del 465 (SSL directo) que usaba el atajo
+    // "service: gmail" — en producción (Railway) el 465 se quedaba colgado
+    // varios minutos hasta dar ETIMEDOUT (típico de un puerto bloqueado o
+    // filtrado), el 587 suele pasar mejor por ese tipo de restricciones.
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_APP_PASSWORD,
     },
+    // Si no conecta, que falle rápido (unos segundos) en vez de colgar la
+    // acción del usuario varios minutos — el email nunca debe bloquear el
+    // guardado real de datos.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 10_000,
   });
   return transporter;
 }

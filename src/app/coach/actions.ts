@@ -64,6 +64,11 @@ export async function createPatient(formData: FormData) {
     throw new Error("Faltan datos.");
   }
 
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    throw new Error("Ya existe una cuenta con ese email.");
+  }
+
   const password = generateTempPassword(name);
   const passwordHash = await bcrypt.hash(password, 10);
 
@@ -77,10 +82,13 @@ export async function createPatient(formData: FormData) {
     },
   });
 
-  await sendWelcomeEmail(email, name, password);
+  // Sin await a propósito: si Gmail va lento o falla, que no deje a la
+  // coach esperando con el formulario colgado — la paciente ya está creada,
+  // el email es secundario y se manda de fondo.
+  sendWelcomeEmail(email, name, password);
 
   revalidatePath("/coach");
-  redirect(`/coach/pacientes/${user.id}`);
+  return { userId: user.id };
 }
 
 export async function blockPatient(formData: FormData) {

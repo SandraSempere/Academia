@@ -45,10 +45,13 @@ next-env.d.ts
 
 # base de datos local (en producción vive en el volumen persistente, no en el
 # repo) y archivos subidos por paciente (privados — también van al volumen).
-# Los PDFs de /public/uploads/recursos SÍ se versionan: son la guía
-# compartida, no datos de pacientes.
 /dev.db
 /dev.db-journal
 /*.db
 /*.db-journal
 /public/uploads/planes/
+
+# Los PDFs de recursos ya no se commitean aquí directamente (ver
+# content/recursos-seed/ + scripts/seed-recursos.ts) — este directorio lo
+# rellena solo ese script, tanto en local como en producción.
+/public/uploads/recursos/

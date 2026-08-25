@@ -66,6 +66,51 @@ export async function sendPatientFormReminderEmail(
   }
 }
 
+// Bienvenida a una paciente recién dada de alta, con su contraseña
+// temporal — se manda una sola vez, al crearla desde el panel de coach.
+export async function sendWelcomeEmail(to: string, name: string, password: string) {
+  const t = getTransporter();
+  if (!t) {
+    console.warn("Email no configurado — bienvenida no enviada a", to);
+    return;
+  }
+
+  try {
+    await t.sendMail({
+      from: `"Origen Digestivo" <${process.env.EMAIL_USER}>`,
+      to,
+      subject: "Bienvenida a Origen Digestivo 🌿",
+      text: `¡Hola ${name}!
+
+Bienvenida a Origen Digestivo. Estamos encantadas de acompañarte en este proceso.
+
+Para tener tu espacio siempre a mano, instala la app en tu móvil:
+
+📱 iPhone (Safari):
+Abre app.sandrasempere.com → pulsa el botón de compartir (el cuadrado con la flecha hacia arriba) → "Añadir a pantalla de inicio"
+
+📱 Android (Chrome):
+Abre app.sandrasempere.com → menú de los tres puntos → "Añadir a pantalla de inicio" o "Instalar aplicación"
+
+Se guardará como una app en tu móvil, lista para abrir cuando quieras.
+
+Para entrar, usa:
+Email: ${to}
+Contraseña temporal: ${password}
+
+La primera vez que inicies sesión te pedirá cambiar la contraseña.
+
+Antes de nada:
+1. Mira el módulo de Bienvenida
+2. Rellena cuanto antes el formulario de síntomas
+
+¡Ya tienes todo listo para empezar!`,
+    });
+  } catch (err) {
+    console.error("Error enviando email de bienvenida:", err);
+  }
+}
+
 // "¿Olvidaste tu contraseña?" — enlace de un solo uso, válido 1 hora.
 export async function sendPasswordResetEmail(to: string, name: string, resetUrl: string) {
   const t = getTransporter();

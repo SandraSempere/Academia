@@ -25,17 +25,11 @@ export default function NuevaPacientePage() {
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Contraseña provisional
-          <input
-            name="password"
-            type="text"
-            required
-            minLength={8}
-            placeholder="Mínimo 8 caracteres"
-            className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-primary"
-          />
-        </label>
+        <p className="text-xs text-foreground/60">
+          Se le genera sola una contraseña provisional (su nombre + &quot;1234&quot;)
+          y se le manda por email con las instrucciones para instalar la app y
+          entrar por primera vez.
+        </p>
 
         <button
           type="submit"

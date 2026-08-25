@@ -9,6 +9,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
 import { addDays, atMidnight } from "@/lib/revisiones";
+import { sendWelcomeEmail } from "@/lib/email";
 
 async function requireCoach() {
   const session = await auth();
@@ -39,17 +40,31 @@ export async function addClinicalNote(formData: FormData) {
   revalidatePath(`/coach/pacientes/${userId}`);
 }
 
+// Nombre de pila en minúsculas, sin acentos ni espacios, + "1234" —
+// p.ej. "Sandra" → "sandra1234", "María José" → "maria1234" (solo la
+// primera palabra). La paciente la cambia obligatoriamente en su primer
+// login, así que no hace falta que sea más elaborada.
+function generateTempPassword(name: string): string {
+  const firstName = name.trim().split(/\s+/)[0] ?? "";
+  const normalized = firstName
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  return `${normalized}1234`;
+}
+
 export async function createPatient(formData: FormData) {
   await requireCoach();
 
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
 
-  if (!name || !email || password.length < 8) {
-    throw new Error("Faltan datos o la contraseña es demasiado corta (mínimo 8 caracteres).");
+  if (!name || !email) {
+    throw new Error("Faltan datos.");
   }
 
+  const password = generateTempPassword(name);
   const passwordHash = await bcrypt.hash(password, 10);
 
   const user = await prisma.user.create({
@@ -61,6 +76,8 @@ export async function createPatient(formData: FormData) {
       patientProfile: { create: { plan: { create: {} } } },
     },
   });
+
+  await sendWelcomeEmail(email, name, password);
 
   revalidatePath("/coach");
   redirect(`/coach/pacientes/${user.id}`);

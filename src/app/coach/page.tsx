@@ -65,6 +65,9 @@ export default async function CoachHomePage() {
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date(now);
   todayEnd.setHours(23, 59, 59, 999);
+  const upcomingLimit = new Date(todayStart);
+  upcomingLimit.setDate(upcomingLimit.getDate() + 10);
+  upcomingLimit.setHours(23, 59, 59, 999);
 
   const [{ patients, activas, finalizadas }, todayAppointments, upcomingAppointments, quincenalToReview, autoAppointments, newlyActivated] =
     await Promise.all([
@@ -75,9 +78,8 @@ export default async function CoachHomePage() {
         include: { patientProfile: { include: { user: true } } },
       }),
       prisma.appointment.findMany({
-        where: { date: { gt: todayEnd } },
+        where: { date: { gt: todayEnd, lte: upcomingLimit } },
         orderBy: { date: "asc" },
-        take: 5,
         include: { patientProfile: { include: { user: true } } },
       }),
       prisma.quincenalForm.findMany({

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { saveIntakeScreening } from "@/app/(app)/actions";
+import { IntakeScreeningSummary } from "@/components/intake-screening-summary";
 
 type IntakeData = {
   bloatingFrequency: string | null;
@@ -22,25 +23,29 @@ const textClass =
 
 export function IntakeScreeningForm({ data }: { data: IntakeData }) {
   const [pending, startTransition] = useTransition();
-  const [saved, setSaved] = useState(!!data?.completedAt);
+
+  if (data?.completedAt) {
+    return (
+      <div className="flex flex-col gap-3 rounded-2xl border border-black/5 bg-blanco-roto p-5">
+        <p className="rounded-lg bg-brand-tertiary-soft px-3 py-2 text-xs text-foreground/70">
+          Ya enviaste tus respuestas el{" "}
+          {new Date(data.completedAt).toLocaleDateString("es-ES")}. En la
+          semana 12 las miramos juntas 💛
+        </p>
+        <IntakeScreeningSummary data={data} />
+      </div>
+    );
+  }
 
   return (
     <form
       action={(formData) =>
         startTransition(async () => {
           await saveIntakeScreening(formData);
-          setSaved(true);
         })
       }
       className="flex flex-col gap-4 rounded-2xl border border-black/5 bg-blanco-roto p-5"
     >
-      {saved && (
-        <p className="rounded-lg bg-brand-tertiary-soft px-3 py-2 text-xs text-foreground/70">
-          Ya tienes respuestas guardadas. Puedes actualizarlas cuando quieras —
-          en la semana 12 las miramos juntas.
-        </p>
-      )}
-
       <label className="flex flex-col gap-1 text-sm">
         1. ¿Cuántos días a la semana notas hinchazón?
         <select

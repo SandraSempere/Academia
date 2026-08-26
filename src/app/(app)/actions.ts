@@ -20,8 +20,12 @@ export async function saveIntakeScreening(formData: FormData) {
 
   const profile = await prisma.patientProfile.findUnique({
     where: { userId: session.user.id },
+    include: { intakeScreening: true },
   });
   if (!profile) throw new Error("Perfil no encontrado");
+  if (profile.intakeScreening?.completedAt) {
+    throw new Error("Ya enviaste tus respuestas — no se pueden modificar.");
+  }
 
   const data = {
     bloatingFrequency: String(formData.get("bloatingFrequency") ?? ""),
@@ -279,8 +283,12 @@ export async function saveRuleAuditForm(formData: FormData) {
 
   const profile = await prisma.patientProfile.findUnique({
     where: { userId: session.user.id },
+    include: { ruleAuditForm: true },
   });
   if (!profile) throw new Error("Perfil no encontrado");
+  if (profile.ruleAuditForm?.submittedAt) {
+    throw new Error("Ya enviaste la auditoría de reglas — no se puede modificar.");
+  }
 
   const data: Record<string, string> = {};
   for (const fieldId of RULE_ALL_FIELD_IDS) {
@@ -307,8 +315,12 @@ export async function saveCommitmentForm(formData: FormData) {
 
   const profile = await prisma.patientProfile.findUnique({
     where: { userId: session.user.id },
+    include: { commitmentForm: true },
   });
   if (!profile) throw new Error("Perfil no encontrado");
+  if (profile.commitmentForm?.submittedAt) {
+    throw new Error("Ya enviaste este documento — no se puede modificar.");
+  }
 
   const data: Record<string, string> = {};
   for (const fieldId of ATTEMPT_ALL_FIELD_IDS) {

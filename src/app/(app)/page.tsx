@@ -232,9 +232,11 @@ export default async function HomePage() {
                   incorrectas.
                 </p>
                 <IntakeScreeningForm data={intakeScreening} />
-                <p className="mt-2 text-xs text-foreground/60">
-                  Guarda tus respuestas. En la semana 12 las miramos juntas 💛
-                </p>
+                {!intakeScreening?.completedAt && (
+                  <p className="mt-2 text-xs text-foreground/60">
+                    Guarda tus respuestas. En la semana 12 las miramos juntas 💛
+                  </p>
+                )}
               </div>
             </details>
           )}

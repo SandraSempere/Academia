@@ -239,7 +239,6 @@ const WEEK_BLOCKS = [
       "He visto el vídeo de bienvenida",
       "He visto cómo vamos a trabajar juntas",
       "Cómo usar este espacio para que el proceso tenga sentido",
-      "Cómo funciona la app",
       "He recibido mi plan nutricional personalizado",
       "Empiezo a registrar mis comidas y cómo me siento",
     ],

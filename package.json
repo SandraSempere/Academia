@@ -6,7 +6,7 @@
     "predev": "tsx scripts/seed-recursos.ts",
     "dev": "next dev",
     "build": "next build",
-    "start": "prisma migrate deploy && tsx prisma/seed.ts && tsx scripts/seed-recursos.ts && next start -p 3000",
+    "start": "prisma migrate deploy && tsx prisma/seed.ts && tsx scripts/seed-recursos.ts && tsx scripts/fix-coach-email.ts && next start -p 3000",
     "lint": "eslint",
     "postinstall": "prisma generate"
   },

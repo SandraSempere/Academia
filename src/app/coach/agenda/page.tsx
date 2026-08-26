@@ -152,8 +152,33 @@ export default async function AgendaPage({
 
                         <details open={tbd}>
                           <summary className="cursor-pointer text-[10px] text-foreground/50 hover:text-brand-primary">
-                            ✏️ editar
+                            ℹ️ ver cita
                           </summary>
+                          <div className="mt-1 flex flex-col gap-0.5 rounded bg-blanco-roto px-1.5 py-1 text-[10px] text-foreground/70">
+                            <p>
+                              <span className="font-medium">Paciente:</span>{" "}
+                              {appt.patientProfile?.user.name ?? appt.title ?? "Sin paciente"}
+                            </p>
+                            <p>
+                              <span className="font-medium">Día:</span>{" "}
+                              {appt.date.toLocaleDateString("es-ES", {
+                                weekday: "long",
+                                day: "numeric",
+                                month: "long",
+                              })}
+                            </p>
+                            <p>
+                              <span className="font-medium">Hora:</span>{" "}
+                              {tbd
+                                ? "Sin hora asignada"
+                                : appt.date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                            </p>
+                            {appt.notes && (
+                              <p>
+                                <span className="font-medium">Nota:</span> {appt.notes}
+                              </p>
+                            )}
+                          </div>
                           <form
                             action={updateAppointment}
                             className="mt-1 flex flex-col gap-1"

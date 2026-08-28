@@ -90,10 +90,10 @@ Bienvenida a Origen Digestivo. Estamos encantadas de acompañarte en este proces
 Para tener tu espacio siempre a mano, instala la app en tu móvil:
 
 📱 iPhone (Safari):
-Abre app.sandrasempere.com → pulsa el botón de compartir (el cuadrado con la flecha hacia arriba) → "Añadir a pantalla de inicio"
+Abre https://app.sandrasempere.com → pulsa el botón de compartir (el cuadrado con la flecha hacia arriba) → "Añadir a pantalla de inicio"
 
 📱 Android (Chrome):
-Abre app.sandrasempere.com → menú de los tres puntos → "Añadir a pantalla de inicio" o "Instalar aplicación"
+Abre https://app.sandrasempere.com → menú de los tres puntos → "Añadir a pantalla de inicio" o "Instalar aplicación"
 
 Se guardará como una app en tu móvil, lista para abrir cuando quieras.
 

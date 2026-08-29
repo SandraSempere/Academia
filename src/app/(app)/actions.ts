@@ -11,6 +11,7 @@ import { EATING_STEPS, EATING_WEEK_DAYS } from "@/lib/eating-checklist-fields";
 import { RULE_ALL_FIELD_IDS } from "@/lib/rule-audit-fields";
 import { ATTEMPT_ALL_FIELD_IDS } from "@/lib/commitment-form-fields";
 import { sendNotificationEmail } from "@/lib/email";
+import { appendPatientToSheet } from "@/lib/google-sheets";
 
 export async function saveIntakeScreening(formData: FormData) {
   const session = await auth();
@@ -56,9 +57,10 @@ export async function saveSymptomForm(formData: FormData) {
 
   const profile = await prisma.patientProfile.findUnique({
     where: { userId: session.user.id },
-    include: { user: true },
+    include: { user: true, symptomForm: true },
   });
   if (!profile) throw new Error("Perfil no encontrado");
+  const isFirstSubmission = !profile.symptomForm?.submittedAt;
 
   const personal: Record<string, string | number | null> = {};
   for (const field of PERSONAL_FIELDS) {
@@ -85,6 +87,8 @@ export async function saveSymptomForm(formData: FormData) {
 
   const data = {
     fullName: personal.fullName as string | null,
+    firstName: personal.firstName as string | null,
+    lastName: personal.lastName as string | null,
     dni: personal.dni as string | null,
     birthDate: personal.birthDate as string | null,
     phone: personal.phone as string | null,
@@ -92,6 +96,7 @@ export async function saveSymptomForm(formData: FormData) {
     address: personal.address as string | null,
     postalCode: personal.postalCode as string | null,
     city: personal.city as string | null,
+    province: personal.province as string | null,
     age: personal.age as number | null,
     height: personal.height as number | null,
     weight: personal.weight as number | null,
@@ -114,6 +119,19 @@ export async function saveSymptomForm(formData: FormData) {
     "📝 Nuevo formulario de síntomas",
     `${profile.user.name ?? "Una paciente"} ha rellenado el Formulario de síntomas.`,
   );
+
+  // Solo la primera vez que lo envía (no en cada actualización posterior) y
+  // sin await, por el mismo motivo que el aviso por email de arriba.
+  if (isFirstSubmission) {
+    appendPatientToSheet({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone,
+      email: data.email,
+      city: data.city,
+      province: data.province,
+    });
+  }
 
   revalidatePath("/formulario-sintomas");
   revalidatePath("/coach");

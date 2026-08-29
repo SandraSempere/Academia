@@ -243,7 +243,9 @@ model SymptomForm {
   id               String         @id @default(cuid())
   patientProfileId String         @unique
   patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
-  fullName         String?
+  fullName         String? // legado — formularios enviados antes de separar nombre/apellidos
+  firstName        String?
+  lastName         String?
   dni              String?
   birthDate        String?
   phone            String?
@@ -251,6 +253,7 @@ model SymptomForm {
   address          String?
   postalCode       String?
   city             String?
+  province         String?
   age              Int?
   height           Int?
   weight           Int?

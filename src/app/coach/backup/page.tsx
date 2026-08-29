@@ -23,15 +23,17 @@ export default async function BackupPage({
         )}
         <div className="rounded-2xl border border-black/5 bg-blanco-roto p-6">
           <p className="text-sm text-foreground/70">
-            Conecta tu cuenta de Google Drive para poder hacer copias de
-            seguridad de los datos de tus pacientes y restaurarlas si algún
-            día lo necesitas.
+            Conecta tu cuenta de Google para poder hacer copias de seguridad
+            de los datos de tus pacientes y restaurarlas si algún día lo
+            necesitas. La misma conexión se usa también para añadir
+            automáticamente a tu Google Sheets los datos de cada paciente
+            nueva que rellena el Formulario de síntomas.
           </p>
           <a
             href="/api/backup/connect"
             className="mt-4 inline-block rounded-full bg-brand-primary px-5 py-2.5 text-sm font-medium text-white hover:opacity-90"
           >
-            Conectar con Google Drive
+            Conectar con Google
           </a>
         </div>
       </div>
@@ -52,14 +54,14 @@ export default async function BackupPage({
         <h1 className="text-2xl font-semibold">💾 Copia de seguridad</h1>
         <form action={disconnectBackup}>
           <button type="submit" className="text-xs text-foreground/50 hover:text-brand-primary">
-            Desconectar Google Drive
+            Desconectar Google
           </button>
         </form>
       </div>
 
       {connected && (
         <p className="rounded-lg bg-brand-tertiary-soft px-4 py-3 text-sm">
-          Google Drive conectado correctamente.
+          Google conectado correctamente.
         </p>
       )}
 

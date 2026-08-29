@@ -10,10 +10,16 @@ export type FieldDef = {
   label: string;
   type: FieldType;
   options?: string[];
+  // Campo legado que ya no se pide en el formulario (para no perder los
+  // datos de quien lo envió antes de un cambio de campos) — se sigue
+  // mostrando en el resumen de la coach y en el PDF, pero no como input.
+  summaryOnly?: boolean;
 };
 
 export const PERSONAL_FIELDS: FieldDef[] = [
-  { id: "fullName", label: "Nombre y apellidos", type: "text" },
+  { id: "firstName", label: "Nombre", type: "text" },
+  { id: "lastName", label: "Apellidos", type: "text" },
+  { id: "fullName", label: "Nombre y apellidos", type: "text", summaryOnly: true },
   { id: "dni", label: "DNI", type: "text" },
   { id: "birthDate", label: "Fecha de nacimiento", type: "text" },
   { id: "phone", label: "Teléfono", type: "text" },
@@ -21,6 +27,7 @@ export const PERSONAL_FIELDS: FieldDef[] = [
   { id: "address", label: "Dirección", type: "text" },
   { id: "postalCode", label: "Código postal", type: "text" },
   { id: "city", label: "Ciudad", type: "text" },
+  { id: "province", label: "Provincia", type: "text" },
   { id: "age", label: "Edad", type: "number" },
   { id: "height", label: "Altura (cm)", type: "number" },
   { id: "weight", label: "Peso (kg)", type: "number" },

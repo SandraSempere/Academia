@@ -9,9 +9,12 @@ const CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? "";
 const REDIRECT_URI = process.env.GOOGLE_OAUTH_REDIRECT_URI ?? "";
 const FOLDER_NAME = "Origen Digestivo · Copias de seguridad";
 
-// Alcance mínimo: solo archivos creados por esta app, nunca el resto del
-// Drive de la coach.
-const SCOPE = "https://www.googleapis.com/auth/drive.file";
+// Alcance mínimo para Drive: solo archivos creados por esta app, nunca el
+// resto del Drive de la coach. El de Sheets es más amplio a la fuerza —
+// para escribir en una hoja ya existente de la coach (no creada por la
+// app) no hay un alcance "solo esta hoja" sin pasar por el selector de
+// archivos de Google (Picker), así que se pide acceso a todas sus hojas.
+const SCOPE = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets";
 
 export function getGoogleAuthUrl() {
   const params = new URLSearchParams({
@@ -41,7 +44,7 @@ export async function exchangeCodeForTokens(code: string) {
   return res.json() as Promise<{ access_token: string; refresh_token?: string; expires_in: number }>;
 }
 
-async function getAccessToken(): Promise<string> {
+export async function getAccessToken(): Promise<string> {
   const config = await prisma.backupConfig.findUnique({ where: { id: "singleton" } });
   if (!config) throw new Error("No hay ninguna cuenta de Google Drive conectada.");
 

@@ -7,6 +7,8 @@ import { BristolScale } from "@/components/bristol-scale";
 
 type SymptomFormData = {
   fullName: string | null;
+  firstName: string | null;
+  lastName: string | null;
   dni: string | null;
   birthDate: string | null;
   phone: string | null;
@@ -14,6 +16,7 @@ type SymptomFormData = {
   address: string | null;
   postalCode: string | null;
   city: string | null;
+  province: string | null;
   age: number | null;
   height: number | null;
   weight: number | null;
@@ -136,7 +139,7 @@ export function SymptomForm({ data }: { data: SymptomFormData }) {
       <section className="flex flex-col gap-3 rounded-2xl border border-black/5 bg-blanco-roto p-5">
         <h2 className="font-semibold">Tus datos</h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          {PERSONAL_FIELDS.map((field) => (
+          {PERSONAL_FIELDS.filter((field) => !field.summaryOnly).map((field) => (
             <label key={field.id} className="flex flex-col gap-1 text-sm">
               {field.label} <span className="text-brand-primary">*</span>
               <Field

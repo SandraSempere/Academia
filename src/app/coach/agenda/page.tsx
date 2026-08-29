@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createAppointment, deleteAppointment, updateAppointment } from "@/app/coach/actions";
-import { isTimeTbd } from "@/lib/revisiones";
+import { computeCheckpoints, isTimeTbd } from "@/lib/revisiones";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +66,7 @@ export default async function AgendaPage({
     prisma.user.findMany({
       where: { role: "PATIENT" },
       orderBy: { name: "asc" },
-      include: { patientProfile: true },
+      include: { patientProfile: { include: { quincenalForms: true } } },
     }),
   ]);
 
@@ -76,6 +76,64 @@ export default async function AgendaPage({
     const list = appointmentsByDay.get(key) ?? [];
     list.push(appt);
     appointmentsByDay.set(key, list);
+  }
+
+  // Fechas de "toca formulario" (semana 2/6/10) — no son citas reales en la
+  // Agenda (no tienen hora ni se editan/borran aquí), son las mismas fechas
+  // calculadas que ya se usan en /coach/revisiones y en los recordatorios
+  // por email; aquí solo se muestran para tenerlas también de un vistazo.
+  type FormDueEntry = {
+    patientId: string;
+    patientName: string;
+    week: 2 | 6 | 10;
+    cycle: 1 | 2;
+    submitted: boolean;
+  };
+  const formDueByDay = new Map<string, FormDueEntry[]>();
+  const addFormDueEntry = (dateStr: string, entry: FormDueEntry) => {
+    const list = formDueByDay.get(dateStr) ?? [];
+    list.push(entry);
+    formDueByDay.set(dateStr, list);
+  };
+  for (const patient of patients) {
+    const profile = patient.patientProfile;
+    if (!profile) continue;
+
+    if (profile.planStartDate) {
+      const checkpoints = computeCheckpoints(profile.planStartDate, profile.revision4Date, profile.revision8Date);
+      for (const checkpoint of checkpoints) {
+        if (!("formWeek" in checkpoint)) continue;
+        addFormDueEntry(dateKey(checkpoint.date), {
+          patientId: patient.id,
+          patientName: patient.name,
+          week: checkpoint.formWeek!,
+          cycle: 1,
+          submitted: profile.quincenalForms.some(
+            (f) => f.cycle === 1 && f.week === checkpoint.formWeek && f.submittedAt,
+          ),
+        });
+      }
+    }
+
+    if (profile.renewalEnabled && profile.renewalPlanStartDate) {
+      const checkpoints = computeCheckpoints(
+        profile.renewalPlanStartDate,
+        profile.renewalRevision4Date,
+        profile.renewalRevision8Date,
+      );
+      for (const checkpoint of checkpoints) {
+        if (!("formWeek" in checkpoint)) continue;
+        addFormDueEntry(dateKey(checkpoint.date), {
+          patientId: patient.id,
+          patientName: patient.name,
+          week: checkpoint.formWeek!,
+          cycle: 2,
+          submitted: profile.quincenalForms.some(
+            (f) => f.cycle === 2 && f.week === checkpoint.formWeek && f.submittedAt,
+          ),
+        });
+      }
+    }
   }
 
   const prevMonth = month === 0 ? { year: year - 1, month: 12 } : { year, month };
@@ -218,6 +276,17 @@ export default async function AgendaPage({
                       </div>
                     );
                   })}
+                  {(formDueByDay.get(key) ?? []).map((entry) => (
+                    <Link
+                      key={`${entry.patientId}-${entry.cycle}-${entry.week}`}
+                      href={`/coach/pacientes/${entry.patientId}`}
+                      className="block truncate rounded bg-brand-tertiary-soft px-1.5 py-1 hover:opacity-80"
+                    >
+                      📝 {entry.patientName} · Sem. {entry.week}
+                      {entry.cycle === 2 ? " · Ren." : ""}
+                      {entry.submitted ? " ✓" : ""}
+                    </Link>
+                  ))}
                 </div>
               </div>
             );

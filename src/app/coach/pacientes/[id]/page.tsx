@@ -28,10 +28,10 @@ import type { MealDiaryEntryData } from "@/lib/meal-diary-fields";
 export const dynamic = "force-dynamic";
 
 const PLAN_FILE_SECTIONS = [
-  { category: "accion", title: "Plan de acción" },
-  { category: "nutricional", title: "Plan nutricional" },
-  { category: "suplementacion", title: "Suplementación" },
-  { category: "recetas", title: "Receta" },
+  { category: "accion", title: "Plan de acción", emoji: "🗓️" },
+  { category: "nutricional", title: "Plan nutricional", emoji: "🍽️" },
+  { category: "suplementacion", title: "Suplementación", emoji: "💊" },
+  { category: "recetas", title: "Receta", emoji: "🍳" },
 ];
 
 // Estas se duplican para la renovación (Plan de acción, Plan nutricional y
@@ -557,7 +557,9 @@ export default async function PacienteDetailPage({
       <div className="flex flex-col gap-4">
         {PLAN_FILE_SECTIONS.map((section) => (
           <div key={section.category} className="flex flex-col gap-2">
-            <p className="text-sm font-semibold">{section.title}</p>
+            <p className="text-sm font-semibold">
+              {section.emoji} {section.title}
+            </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {[1, 2, 3, 4].map((slot) => (
                 <PlanFileUploadRow
@@ -602,7 +604,9 @@ export default async function PacienteDetailPage({
           </p>
           {RENEWAL_PLAN_FILE_SECTIONS.map((section) => (
             <div key={section.category} className="flex flex-col gap-2">
-              <p className="text-sm font-semibold">{section.title} · Renovación</p>
+              <p className="text-sm font-semibold">
+                {section.emoji} {section.title} · Renovación
+              </p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {[1, 2, 3, 4].map((slot) => (
                   <PlanFileUploadRow

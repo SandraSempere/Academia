@@ -145,7 +145,7 @@ export async function saveQuincenalForm(formData: FormData) {
 
   const week = Number(formData.get("week"));
   const cycle = Number(formData.get("cycle") ?? 1);
-  if (![2, 6, 10].includes(week)) throw new Error("Semana no válida");
+  if (![2, 6, 10, 14].includes(week)) throw new Error("Semana no válida");
   if (![1, 2].includes(cycle)) throw new Error("Ciclo no válido");
 
   const profile = await prisma.patientProfile.findUnique({
@@ -154,6 +154,7 @@ export async function saveQuincenalForm(formData: FormData) {
   });
   if (!profile) throw new Error("Perfil no encontrado");
   if (cycle === 2 && !profile.renewalEnabled) throw new Error("La renovación no está activada");
+  if (week === 14 && !profile.extraMonthEnabled) throw new Error("El mes extra no está activado");
 
   const answers: Record<string, string> = {};
   for (const section of QUINCENAL_SECTIONS) {

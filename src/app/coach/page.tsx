@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPatientsWithStatus } from "@/lib/patient";
-import { isTimeTbd, formularioWeekOverdue } from "@/lib/revisiones";
+import { isTimeTbd, formularioWeekOverdue, extraMonthFormularioWeekOverdue } from "@/lib/revisiones";
 import { markPatientActivationSeen } from "@/app/coach/actions";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,8 @@ type ProfileWithForms = {
   planStartDate: Date | null;
   revision4Date: Date | null;
   revision8Date: Date | null;
+  extraMonthEnabled: boolean;
+  extraMonthStartDate: Date | null;
   symptomForm: { submittedAt: Date | null } | null;
   quincenalForms: { week: number; cycle: number; submittedAt: Date | null }[];
   celebrationForm: { submittedAt: Date | null } | null;
@@ -57,6 +59,11 @@ const FORM_CHECKS: {
     isDue: (p, today) => formularioWeekOverdue(p.planStartDate, p.revision4Date, p.revision8Date, 10, today),
   },
   { label: "Formulario de cierre y valoración", done: (p) => !!p.closingForm?.submittedAt },
+  {
+    label: "Revisión quincenal · Semana 14 · Mes extra",
+    done: (p) => p.quincenalForms.some((f) => f.cycle === 1 && f.week === 14 && f.submittedAt),
+    isDue: (p, today) => p.extraMonthEnabled && extraMonthFormularioWeekOverdue(p.extraMonthStartDate, today),
+  },
 ];
 
 export default async function CoachHomePage() {

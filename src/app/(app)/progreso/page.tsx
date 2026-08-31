@@ -249,6 +249,49 @@ export default async function ProgresoPage() {
           </details>
         )}
 
+        {profile?.extraMonthEnabled && (
+          <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+            <summary className="cursor-pointer font-semibold">
+              📅 Revisión quincenal · Mes extra
+            </summary>
+            <p className="mt-2 text-sm text-foreground/70">
+              Sigues un mes más — esta es tu revisión de la semana 14.
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {(() => {
+                const week = 14;
+                const submitted = !!quincenalByWeek.get(week)?.submittedAt;
+                return (
+                  <Link
+                    href={`/revision-quincenal/${week}`}
+                    className={`flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium transition-transform hover:-translate-y-0.5 ${
+                      submitted
+                        ? "bg-brand-tertiary-soft text-carbon"
+                        : "bg-brand-primary text-white"
+                    }`}
+                  >
+                    <span>
+                      Semana {week}
+                      {submitted && " ✅"}
+                    </span>
+                    <span>{submitted ? "Ver" : "Rellenar"} →</span>
+                  </Link>
+                );
+              })()}
+            </div>
+            {quincenalByWeek.get(14)?.coachVideoUrl ? (
+              <div className="mt-3">
+                <VideoEmbed title="🎥 Vídeo personalizado · Semana 14" url={quincenalByWeek.get(14)!.coachVideoUrl!} />
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-foreground/60">
+                🎥 Vídeo personalizado · Semana 14 — te lo dejaré aquí después
+                de revisar tu revisión quincenal.
+              </p>
+            )}
+          </details>
+        )}
+
         <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
           <summary className="cursor-pointer font-semibold">
             📝 Registro de comidas
@@ -261,7 +304,10 @@ export default async function ProgresoPage() {
           </p>
           {profile && (
             <div className="mt-3">
-              <MealDiary entries={mealDiaryByWeekDay} />
+              <MealDiary
+                entries={mealDiaryByWeekDay}
+                weeks={profile.extraMonthEnabled ? Array.from({ length: 16 }, (_, i) => i + 1) : undefined}
+              />
             </div>
           )}
         </details>

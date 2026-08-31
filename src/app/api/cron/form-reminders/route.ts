@@ -1,13 +1,14 @@
 import { prisma } from "@/lib/prisma";
-import { formularioReminder } from "@/lib/revisiones";
+import { formularioReminder, extraMonthFormularioReminder } from "@/lib/revisiones";
 import { sendPatientFormReminderEmail } from "@/lib/email";
 
 // Comprobación diaria: a qué pacientes les toca (mañana o hoy) rellenar su
-// Formulario de revisión quincenal (semana 2/6/10) — les manda un
-// recordatorio por email en los dos momentos (el día antes y el día
-// exacto), cada uno con su propio "ya avisado" para no repetirlo.
-// Comprueba tanto el ciclo original como el de renovación (si está
-// activada), cada uno con sus propias fechas.
+// Formulario de revisión quincenal (semana 2/6/10, o semana 14 del mes
+// extra) — les manda un recordatorio por email en los dos momentos (el día
+// antes y el día exacto), cada uno con su propio "ya avisado" para no
+// repetirlo. Comprueba el ciclo original, el de renovación (si está
+// activada) y el mes extra (si está activado), cada uno con sus propias
+// fechas.
 //
 // En producción la llama un servicio de Cron Job aparte en Railway
 // ("Recordatorio pacientes", mismo repo, comando propio), una vez al día.
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
   }
 
   const patients = await prisma.patientProfile.findMany({
-    where: { OR: [{ planStartDate: { not: null } }, { renewalEnabled: true }] },
+    where: { OR: [{ planStartDate: { not: null } }, { renewalEnabled: true }, { extraMonthEnabled: true }] },
     include: { user: true, quincenalForms: true },
   });
 
@@ -57,6 +58,28 @@ export async function GET(request: Request) {
 
       await sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, cycle);
       remindersSent++;
+    }
+
+    // Mes extra — solo 1 hito (semana 14), no encaja en el bucle de arriba
+    // (pensado para el modelo de 6 hitos con revision4/revision8). Se
+    // guarda con cycle 1, igual que el resto de datos del mes extra.
+    if (profile.extraMonthEnabled && profile.extraMonthStartDate) {
+      const due = extraMonthFormularioReminder(profile.extraMonthStartDate, today);
+      if (due) {
+        const existing = profile.quincenalForms.find((f) => f.cycle === 1 && f.week === due.week);
+        const sentField = due.when === "hoy" ? "reminderSentAt" : "reminderSentDayBeforeAt";
+
+        if (!existing?.submittedAt && !existing?.[sentField]) {
+          await prisma.quincenalForm.upsert({
+            where: { patientProfileId_cycle_week: { patientProfileId: profile.id, cycle: 1, week: due.week } },
+            create: { patientProfileId: profile.id, cycle: 1, week: due.week, answers: {}, [sentField]: today },
+            update: { [sentField]: today },
+          });
+
+          await sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, 1);
+          remindersSent++;
+        }
+      }
     }
   }
 

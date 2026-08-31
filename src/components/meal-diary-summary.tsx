@@ -7,10 +7,12 @@ import { DAYS, MEAL_DIARY_FIELDS, WEEKS, hasAnyValue, type MealDiaryEntryData } 
 // ruido.
 export function MealDiarySummary({
   entries,
+  weeks = WEEKS,
 }: {
   entries: Map<string, MealDiaryEntryData>;
+  weeks?: number[];
 }) {
-  const weeksWithData = WEEKS.filter((week) =>
+  const weeksWithData = weeks.filter((week) =>
     DAYS.some((d) => hasAnyValue(entries.get(`${week}-${d.day}`))),
   );
 

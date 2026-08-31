@@ -56,6 +56,8 @@ model PatientProfile {
   renewalPlanStartDate DateTime? // se pone sola al activar la renovación
   renewalRevision4Date DateTime? // igual que revision4Date pero del ciclo de renovación
   renewalRevision8Date DateTime? // igual que revision8Date pero del ciclo de renovación
+  extraMonthEnabled    Boolean   @default(false) // "1 mes extra" (semanas 13-16) — la activa la coach a mano, igual que la renovación
+  extraMonthStartDate  DateTime? // se pone sola al activar el mes extra; formulario semana 14 = +15 dias, revision final semana 16 = +30 dias
   phase      Int      @default(1) // Fase 1-4 del proceso, la ajusta la coach
   activatedAt     DateTime? // primera vez que la paciente entra y cambia su contraseña provisional — "se ha unido de verdad"
   activatedSeenAt DateTime? // la coach ya vio el aviso de "nueva paciente" en Inicio
@@ -111,7 +113,7 @@ model PatientPlanFile {
   patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
   category         String // "accion" | "nutricional" | "suplementacion" | "recetas" | "reintroduccion"
   cycle            Int            @default(1) // 1 = programa original, 2 = renovación (solo accion/nutricional/suplementacion)
-  slot             Int // 1-4
+  slot             Int // 1-4, o 5 para el mes extra (solo cycle 1, categorías accion/nutricional/suplementacion/recetas)
   url              String?
   updatedAt        DateTime       @updatedAt
 

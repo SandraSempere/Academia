@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createAppointment, deleteAppointment, updateAppointment } from "@/app/coach/actions";
-import { computeCheckpoints, isTimeTbd } from "@/lib/revisiones";
+import { computeCheckpoints, computeExtraMonthCheckpoints, isTimeTbd } from "@/lib/revisiones";
 
 export const dynamic = "force-dynamic";
 
@@ -85,7 +85,7 @@ export default async function AgendaPage({
   type FormDueEntry = {
     patientId: string;
     patientName: string;
-    week: 2 | 6 | 10;
+    week: 2 | 6 | 10 | 14;
     cycle: 1 | 2;
     submitted: boolean;
   };
@@ -133,6 +133,17 @@ export default async function AgendaPage({
           ),
         });
       }
+    }
+
+    if (profile.extraMonthEnabled && profile.extraMonthStartDate) {
+      const [formulario14] = computeExtraMonthCheckpoints(profile.extraMonthStartDate);
+      addFormDueEntry(dateKey(formulario14.date), {
+        patientId: patient.id,
+        patientName: patient.name,
+        week: formulario14.formWeek!,
+        cycle: 1,
+        submitted: profile.quincenalForms.some((f) => f.cycle === 1 && f.week === 14 && f.submittedAt),
+      });
     }
   }
 
@@ -283,7 +294,7 @@ export default async function AgendaPage({
                       className="block truncate rounded bg-brand-tertiary-soft px-1.5 py-1 hover:opacity-80"
                     >
                       📝 {entry.patientName} · Sem. {entry.week}
-                      {entry.cycle === 2 ? " · Ren." : ""}
+                      {entry.week === 14 ? " · Extra" : entry.cycle === 2 ? " · Ren." : ""}
                       {entry.submitted ? " ✓" : ""}
                     </Link>
                   ))}

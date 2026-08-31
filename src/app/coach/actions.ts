@@ -8,7 +8,7 @@ import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
-import { addDays, atMidnight } from "@/lib/revisiones";
+import { addDays, atMidnight, computeExtraMonthCheckpoints } from "@/lib/revisiones";
 import { sendWelcomeEmail } from "@/lib/email";
 
 async function requireCoach() {
@@ -170,7 +170,7 @@ export async function updateQuincenalVideo(formData: FormData) {
   const userId = String(formData.get("userId") ?? "");
   const week = Number(formData.get("week"));
   const cycle = Number(formData.get("cycle") ?? 1);
-  if (![2, 6, 10].includes(week)) throw new Error("Semana no válida");
+  if (![2, 6, 10, 14].includes(week)) throw new Error("Semana no válida");
   const coachVideoUrl = String(formData.get("coachVideoUrl") ?? "");
 
   const profile = await prisma.patientProfile.findUnique({ where: { userId } });
@@ -192,7 +192,7 @@ export async function markQuincenalReviewed(formData: FormData) {
   const userId = String(formData.get("userId") ?? "");
   const week = Number(formData.get("week"));
   const cycle = Number(formData.get("cycle") ?? 1);
-  if (![2, 6, 10].includes(week)) throw new Error("Semana no válida");
+  if (![2, 6, 10, 14].includes(week)) throw new Error("Semana no válida");
 
   const profile = await prisma.patientProfile.findUnique({ where: { userId } });
   if (!profile) throw new Error("Paciente no encontrada");
@@ -233,7 +233,7 @@ export async function uploadPatientPlanFile(formData: FormData) {
   const file = formData.get("file");
 
   if (!PLAN_FILE_CATEGORIES.includes(category)) throw new Error("Categoría no válida");
-  if (![1, 2, 3, 4].includes(slot)) throw new Error("Hueco no válido");
+  if (![1, 2, 3, 4, 5].includes(slot)) throw new Error("Hueco no válido");
   if (![1, 2].includes(cycle)) throw new Error("Ciclo no válido");
   if (!(file instanceof File) || file.size === 0) {
     throw new Error("Selecciona un archivo PDF.");
@@ -245,6 +245,11 @@ export async function uploadPatientPlanFile(formData: FormData) {
   const profile = await prisma.patientProfile.findUnique({ where: { userId } });
   if (!profile) throw new Error("Paciente no encontrada");
   if (cycle === 2 && !profile.renewalEnabled) throw new Error("La renovación no está activada");
+  // El hueco 5 es el del mes extra (semanas 13-16) — solo existe en el
+  // ciclo original, nunca en la renovación.
+  if (slot === 5 && (cycle !== 1 || !profile.extraMonthEnabled)) {
+    throw new Error("El mes extra no está activado");
+  }
 
   const dir = path.join(process.cwd(), "public", "uploads", "planes");
   await mkdir(dir, { recursive: true });
@@ -385,6 +390,43 @@ export async function enableRenewal(formData: FormData) {
         notes: "Revisión semana 8 · Renovación",
       },
     ],
+  });
+
+  revalidatePath(`/coach/pacientes/${userId}`);
+  revalidatePath("/coach/agenda");
+  revalidatePath("/coach/revisiones");
+  revalidatePath("/coach");
+}
+
+// "1 mes extra" (semanas 13-16) — un mes suelto para pacientes que quieren
+// seguir un poco más pero no otras 12 semanas enteras. Mismo patrón que
+// enableRenewal (se activa a mano, nunca sola), pero solo genera 1 hito
+// (revisión final semana 16) porque el formulario semana 14 no crea cita en
+// la Agenda — ninguno de los formularios semana 2/6/10 la crea tampoco.
+export async function enableExtraMonth(formData: FormData) {
+  await requireCoach();
+
+  const userId = String(formData.get("userId") ?? "");
+  const profile = await prisma.patientProfile.findUnique({ where: { userId } });
+  if (!profile) throw new Error("Paciente no encontrada");
+  if (profile.extraMonthEnabled) return;
+
+  const extraMonthStartDate = new Date();
+  const [, { date: revisionFinal16 }] = computeExtraMonthCheckpoints(extraMonthStartDate);
+  const revisionFinal16AtMidnight = atMidnight(revisionFinal16);
+
+  await prisma.patientProfile.update({
+    where: { id: profile.id },
+    data: { extraMonthEnabled: true, extraMonthStartDate },
+  });
+
+  await prisma.appointment.create({
+    data: {
+      patientProfileId: profile.id,
+      date: revisionFinal16AtMidnight,
+      source: "extra_month_revision_final",
+      notes: "Revisión final semana 16",
+    },
   });
 
   revalidatePath(`/coach/pacientes/${userId}`);

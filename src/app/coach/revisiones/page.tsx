@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { computeCheckpoints, formularioAlert } from "@/lib/revisiones";
+import { computeCheckpoints, formularioAlert, computeExtraMonthCheckpoints, extraMonthFormularioAlert } from "@/lib/revisiones";
 import { updateRevisionDate } from "@/app/coach/actions";
 
 export const dynamic = "force-dynamic";
@@ -139,6 +139,69 @@ function RevisionesTable({
   );
 }
 
+type ExtraMonthRow = {
+  id: string;
+  name: string;
+  email: string;
+  extraMonthStartDate: Date | null;
+  formulario14Submitted: boolean;
+};
+
+// El mes extra solo tiene 2 hitos (Formulario semana 14, Revisión final
+// semana 16), así que no reutiliza RevisionesTable (pensada para los 6 de
+// computeCheckpoints, con fechas de revisión editables a mano) — aquí
+// ninguna fecha es editable, igual que "Revisión final semana 12" en la
+// tabla original.
+function ExtraMonthTable({ rows, today }: { rows: ExtraMonthRow[]; today: Date }) {
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-black/5 bg-blanco-roto">
+      <table className="w-full min-w-[700px] border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-black/5 text-left">
+            <th className="p-3 font-medium text-foreground/50">Paciente</th>
+            <th className="p-3 font-medium text-foreground/50">Email</th>
+            <th className="p-3 font-medium text-foreground/50">Inicio mes extra</th>
+            <th className="p-3 font-medium text-foreground/50">Formulario semana 14</th>
+            <th className="p-3 font-medium text-foreground/50">Revisión final semana 16</th>
+            <th className="p-3 font-medium text-foreground/50">Avisos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            if (!row.extraMonthStartDate) return null;
+            const [formulario14, revisionFinal16] = computeExtraMonthCheckpoints(row.extraMonthStartDate);
+            const alert = extraMonthFormularioAlert(row.extraMonthStartDate, today);
+
+            return (
+              <tr key={row.id} className="border-b border-black/5 align-top">
+                <td className="p-3">
+                  <Link href={`/coach/pacientes/${row.id}`} className="font-medium hover:text-brand-primary">
+                    {row.name}
+                  </Link>
+                </td>
+                <td className="p-3 text-foreground/70">{row.email}</td>
+                <td className="p-3 text-foreground/70">{row.extraMonthStartDate.toLocaleDateString("es-ES")}</td>
+                <td className="p-3 text-foreground/70">
+                  {formulario14.date.toLocaleDateString("es-ES")}
+                  {row.formulario14Submitted && <span className="ml-1 text-brand-tertiary">✓</span>}
+                </td>
+                <td className="p-3 text-foreground/70">{revisionFinal16.date.toLocaleDateString("es-ES")}</td>
+                <td className="p-3">
+                  {alert && (
+                    <span className="whitespace-nowrap rounded-full bg-brand-primary-soft px-2.5 py-1 text-xs">
+                      {alert}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default async function RevisionesPage() {
   const patients = await prisma.user.findMany({
     where: { role: "PATIENT", patientProfile: { symptomForm: { submittedAt: { not: null } } } },
@@ -179,6 +242,18 @@ export default async function RevisionesPage() {
         (patient.patientProfile?.quincenalForms ?? [])
           .filter((f) => f.cycle === 2 && f.submittedAt)
           .map((f) => f.week),
+      ),
+    }));
+
+  const extraMonthRows: ExtraMonthRow[] = patients
+    .filter((patient) => patient.patientProfile?.extraMonthEnabled)
+    .map((patient) => ({
+      id: patient.id,
+      name: patient.name,
+      email: patient.email,
+      extraMonthStartDate: patient.patientProfile?.extraMonthStartDate ?? null,
+      formulario14Submitted: (patient.patientProfile?.quincenalForms ?? []).some(
+        (f) => f.cycle === 1 && f.week === 14 && f.submittedAt,
       ),
     }));
 
@@ -226,6 +301,19 @@ export default async function RevisionesPage() {
             revision8Field="renewalRevision8Date"
             today={today}
           />
+        </div>
+      )}
+
+      {extraMonthRows.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">📋 Revisiones · Mes extra</h2>
+            <p className="mt-1 text-sm text-foreground/70">
+              Pacientes con el mes extra (semanas 13-16) activado — a partir
+              de la fecha en la que lo activaste en su ficha.
+            </p>
+          </div>
+          <ExtraMonthTable rows={extraMonthRows} today={today} />
         </div>
       )}
 

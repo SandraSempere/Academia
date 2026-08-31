@@ -147,13 +147,15 @@ function ColorSelectField({
 export function MealDiary({
   cycle = 1,
   entries,
+  weeks = WEEKS,
 }: {
   cycle?: number;
   entries: Map<string, MealDiaryEntryData>;
+  weeks?: number[];
 }) {
   return (
     <div className="flex flex-col gap-2">
-      {WEEKS.map((week) => {
+      {weeks.map((week) => {
         const filledDays = DAYS.filter((d) => hasAnyValue(entries.get(`${week}-${d.day}`))).length;
         return (
           <details key={week} className="rounded-xl border border-black/5 bg-crema p-3">

@@ -5,6 +5,7 @@ import {
   updateQuincenalVideo,
   markQuincenalReviewed,
   enableRenewal,
+  enableExtraMonth,
   blockPatient,
   unblockPatient,
   resetPatientPassword,
@@ -64,19 +65,25 @@ function QuincenalSection({
   forms,
   cycle,
   title,
+  weeks = [2, 6, 10],
 }: {
   patientId: string;
   forms: QuincenalFormRow[];
   cycle: number;
   title: string;
+  // El mes extra solo tiene la semana 14 — con un único punto no hay
+  // evolución que comparar, así que se salta el gráfico/tabla de
+  // QuincenalComparison (pensado para 3 semanas) y solo se muestran el
+  // estado de revisión y el hueco de vídeo, igual que para 2/6/10.
+  weeks?: number[];
 }) {
   return (
     <div className="flex flex-col gap-4">
       <h2 className="text-lg font-semibold">{title}</h2>
-      <QuincenalComparison forms={forms} />
+      {weeks.length > 1 && <QuincenalComparison forms={forms} />}
 
       <div className="flex flex-wrap gap-2">
-        {[2, 6, 10].map((week) => {
+        {weeks.map((week) => {
           const form = forms.find((f) => f.week === week);
           if (!form?.submittedAt) return null;
           return form.reviewedAt ? (
@@ -103,7 +110,7 @@ function QuincenalSection({
         🎥 Vídeos personalizados por semana
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
-        {[2, 6, 10].map((week) => {
+        {weeks.map((week) => {
           const form = forms.find((f) => f.week === week);
           return (
             <form
@@ -227,6 +234,24 @@ export default async function PacienteDetailPage({
                 className="rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
               >
                 🔁 Habilitar renovación (12 semanas más)
+              </button>
+            </form>
+          )}
+
+          {patient.patientProfile.extraMonthEnabled ? (
+            <span className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs font-medium text-carbon">
+              ✅ Mes extra activo desde{" "}
+              {patient.patientProfile.extraMonthStartDate &&
+                new Date(patient.patientProfile.extraMonthStartDate).toLocaleDateString("es-ES")}
+            </span>
+          ) : (
+            <form action={enableExtraMonth}>
+              <input type="hidden" name="userId" value={patient.id} />
+              <button
+                type="submit"
+                className="rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+              >
+                ➕ Habilitar 1 mes extra (semanas 13-16)
               </button>
             </form>
           )}
@@ -561,7 +586,7 @@ export default async function PacienteDetailPage({
               {section.emoji} {section.title}
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
-              {[1, 2, 3, 4].map((slot) => (
+              {(patient.patientProfile!.extraMonthEnabled ? [1, 2, 3, 4, 5] : [1, 2, 3, 4]).map((slot) => (
                 <PlanFileUploadRow
                   key={slot}
                   userId={patient.id}
@@ -658,9 +683,26 @@ export default async function PacienteDetailPage({
         />
       )}
 
+      {patient.patientProfile.extraMonthEnabled && (
+        <QuincenalSection
+          patientId={patient.id}
+          forms={quincenalFormsCycle1}
+          cycle={1}
+          title="📅 Revisión quincenal · Mes extra · Semana 14"
+          weeks={[14]}
+        />
+      )}
+
       <div className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">📔 Registro de comidas y síntomas</h2>
-        <MealDiarySummary entries={mealDiaryByWeekDay} />
+        <MealDiarySummary
+          entries={mealDiaryByWeekDay}
+          weeks={
+            patient.patientProfile.extraMonthEnabled
+              ? Array.from({ length: 16 }, (_, i) => i + 1)
+              : undefined
+          }
+        />
       </div>
 
       {patient.patientProfile.renewalEnabled && (

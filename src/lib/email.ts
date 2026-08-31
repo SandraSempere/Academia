@@ -45,15 +45,17 @@ export async function sendNotificationEmail(subject: string, text: string) {
 export async function sendPatientFormReminderEmail(
   to: string,
   name: string,
-  week: 2 | 6 | 10,
+  week: 2 | 6 | 10 | 14,
   when: "hoy" | "mañana",
   cycle: 1 | 2 = 1,
 ) {
   // Igual que en el resto de avisos con ciclo (revisión quincenal, PDFs...):
   // si algún día coincide que a la misma paciente le toca la misma semana en
   // el programa original y en la renovación el mismo día, que los dos
-  // emails digan cuál es cuál en vez de llegar con el texto idéntico.
-  const cycleSuffix = cycle === 2 ? " · Renovación" : "";
+  // emails digan cuál es cuál en vez de llegar con el texto idéntico. La
+  // semana 14 es siempre del mes extra (nunca coincide con 2/6/10), así que
+  // no depende del ciclo.
+  const cycleSuffix = week === 14 ? " · Mes extra" : cycle === 2 ? " · Renovación" : "";
   const subject =
     when === "hoy"
       ? `Hoy toca tu seguimiento${cycleSuffix} 📋`

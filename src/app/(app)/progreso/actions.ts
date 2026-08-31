@@ -81,7 +81,8 @@ export async function saveMealDiaryEntry(formData: FormData) {
   const week = Number(formData.get("week"));
   const day = Number(formData.get("day"));
   const cycle = Number(formData.get("cycle") ?? 1);
-  if (week < 1 || week > 12 || day < 1 || day > 7) throw new Error("Semana o día no válido");
+  const maxWeek = cycle === 1 && profile.extraMonthEnabled ? 16 : 12;
+  if (week < 1 || week > maxWeek || day < 1 || day > 7) throw new Error("Semana o día no válido");
   if (![1, 2].includes(cycle)) throw new Error("Ciclo no válido");
   if (cycle === 2 && !profile.renewalEnabled) throw new Error("La renovación no está activada");
 

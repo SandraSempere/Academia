@@ -31,6 +31,20 @@ export function computeCheckpoints(
   ];
 }
 
+// "1 mes extra" (semanas 13-16) — mucho más corto que el ciclo original o la
+// renovación (solo 1 formulario + 1 revisión final, no 6 hitos), así que en
+// vez de generalizar computeCheckpoints se replica el mismo cálculo de días
+// (mitad = +15, final = +30) a mano, con sus propias funciones de aviso.
+export function computeExtraMonthCheckpoints(extraMonthStartDate: Date) {
+  const formulario14 = addDays(extraMonthStartDate, 15);
+  const revisionFinal16 = addDays(extraMonthStartDate, 30);
+
+  return [
+    { label: "Formulario semana 14", date: formulario14, formWeek: 14 as const },
+    { label: "Revisión final semana 16", date: revisionFinal16 },
+  ];
+}
+
 export function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
@@ -103,6 +117,40 @@ export function formularioWeekOverdue(
   );
   if (!checkpoint) return false;
   return atMidnight(checkpoint.date).getTime() <= atMidnight(today).getTime();
+}
+
+// Mismas 3 funciones de aviso que arriba (formularioAlert/Reminder/Overdue)
+// pero para el mes extra, que solo tiene un formulario (semana 14) — no
+// hace falta filtrar por "formWeek" porque solo hay un hito de ese tipo.
+export function extraMonthFormularioAlert(extraMonthStartDate: Date | null, today: Date): string | null {
+  if (!extraMonthStartDate) return null;
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const [{ label, date }] = computeExtraMonthCheckpoints(extraMonthStartDate);
+
+  if (isSameDay(date, today)) return `✅ Hoy: ${label}`;
+  if (isSameDay(date, tomorrow)) return `⚠ En 1 día: ${label}`;
+  return null;
+}
+
+export function extraMonthFormularioReminder(
+  extraMonthStartDate: Date | null,
+  today: Date,
+): { label: string; week: 14; date: Date; when: "hoy" | "mañana" } | null {
+  if (!extraMonthStartDate) return null;
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const [{ label, date, formWeek }] = computeExtraMonthCheckpoints(extraMonthStartDate);
+
+  if (isSameDay(date, today)) return { label, week: formWeek!, date, when: "hoy" };
+  if (isSameDay(date, tomorrow)) return { label, week: formWeek!, date, when: "mañana" };
+  return null;
+}
+
+export function extraMonthFormularioWeekOverdue(extraMonthStartDate: Date | null, today: Date): boolean {
+  if (!extraMonthStartDate) return false;
+  const [{ date }] = computeExtraMonthCheckpoints(extraMonthStartDate);
+  return atMidnight(date).getTime() <= atMidnight(today).getTime();
 }
 
 // "Falta por poner hora": la cita se creó sola con hora 00:00 como marcador

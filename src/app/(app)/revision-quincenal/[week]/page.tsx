@@ -6,7 +6,7 @@ import { QuincenalFormSummary } from "@/components/quincenal-form-summary";
 
 export const dynamic = "force-dynamic";
 
-const VALID_WEEKS = [2, 6, 10];
+const VALID_WEEKS = [2, 6, 10, 14];
 
 export default async function RevisionQuincenalPage({
   params,
@@ -23,6 +23,7 @@ export default async function RevisionQuincenalPage({
 
   const profile = await getCurrentPatientProfile();
   if (cycle === 2 && !profile?.renewalEnabled) notFound();
+  if (week === 14 && !profile?.extraMonthEnabled) notFound();
 
   const existing = profile
     ? await prisma.quincenalForm.findUnique({
@@ -30,7 +31,7 @@ export default async function RevisionQuincenalPage({
       })
     : null;
 
-  const titleSuffix = cycle === 2 ? " · Renovación" : "";
+  const titleSuffix = week === 14 ? " · Mes extra" : cycle === 2 ? " · Renovación" : "";
 
   if (existing?.submittedAt) {
     return (

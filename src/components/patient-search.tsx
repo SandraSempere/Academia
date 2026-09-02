@@ -41,20 +41,32 @@ export function PatientSearch({
         className="rounded-full border border-black/10 bg-blanco-roto px-4 py-2.5 text-sm outline-none focus:border-brand-primary"
       />
 
-      <PatientGroup title={`Activas (${filteredActivas.length})`} entries={filteredActivas} />
-      <PatientGroup title={`Finalizadas (${filteredFinalizadas.length})`} entries={filteredFinalizadas} />
+      <PatientGroup title={`Activas (${filteredActivas.length})`} entries={filteredActivas} searching={!!query.trim()} />
+      <PatientGroup
+        title={`Finalizadas (${filteredFinalizadas.length})`}
+        entries={filteredFinalizadas}
+        searching={!!query.trim()}
+      />
     </div>
   );
 }
 
-function PatientGroup({ title, entries }: { title: string; entries: PatientRow[] }) {
+function PatientGroup({
+  title,
+  entries,
+  searching,
+}: {
+  title: string;
+  entries: PatientRow[];
+  searching: boolean;
+}) {
   return (
-    <div>
-      <h2 className="mb-3 text-lg font-semibold">{title}</h2>
+    <details open={searching} className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+      <summary className="cursor-pointer text-lg font-semibold">{title}</summary>
       {entries.length === 0 ? (
-        <p className="text-sm text-foreground/60">No hay pacientes en este grupo.</p>
+        <p className="mt-3 text-sm text-foreground/60">No hay pacientes en este grupo.</p>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="mt-3 flex flex-col gap-3">
           {entries.map((patient) => (
             <Link
               key={patient.id}
@@ -82,6 +94,6 @@ function PatientGroup({ title, entries }: { title: string; entries: PatientRow[]
           ))}
         </div>
       )}
-    </div>
+    </details>
   );
 }

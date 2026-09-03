@@ -6,6 +6,7 @@ import {
   markQuincenalReviewed,
   enableRenewal,
   enableExtraMonth,
+  resetSymptomForm,
   blockPatient,
   unblockPatient,
   resetPatientPassword,
@@ -478,6 +479,30 @@ export default async function PacienteDetailPage({
           <div className="mt-4">
             <SymptomFormSummary data={symptomForm} />
           </div>
+        )}
+
+        {symptomForm && (
+          <details className="relative mt-4">
+            <summary className="cursor-pointer list-none text-xs font-medium text-foreground/50 hover:text-brand-primary">
+              🔄 Restablecer formulario
+            </summary>
+            <div className="absolute z-10 mt-2 flex w-72 flex-col gap-2 rounded-2xl border border-black/5 bg-blanco-roto p-4 shadow-md">
+              <p className="text-xs text-foreground/60">
+                Borra sus respuestas para siempre y vuelve a verlo vacío, para
+                que lo rellene de cero. Úsalo solo si se equivocó al
+                rellenarlo.
+              </p>
+              <form action={resetSymptomForm}>
+                <input type="hidden" name="userId" value={patient.id} />
+                <button
+                  type="submit"
+                  className="w-full rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+                >
+                  Sí, restablecer
+                </button>
+              </form>
+            </div>
+          </details>
         )}
       </details>
 

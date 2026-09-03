@@ -40,6 +40,24 @@ export async function addClinicalNote(formData: FormData) {
   revalidatePath(`/coach/pacientes/${userId}`);
 }
 
+// Borra el Formulario de síntomas de la paciente por completo (no solo
+// desbloquea el "ya enviado") — si se equivocó al rellenarlo, así vuelve a
+// verlo vacío y lo rellena de cero, en vez de con las respuestas erróneas
+// precargadas.
+export async function resetSymptomForm(formData: FormData) {
+  await requireCoach();
+
+  const userId = String(formData.get("userId") ?? "");
+  const profile = await prisma.patientProfile.findUnique({ where: { userId } });
+  if (!profile) throw new Error("Paciente no encontrada");
+
+  await prisma.symptomForm.deleteMany({ where: { patientProfileId: profile.id } });
+
+  revalidatePath(`/coach/pacientes/${userId}`);
+  revalidatePath("/formulario-sintomas");
+  revalidatePath("/coach");
+}
+
 // Nombre de pila en minúsculas, sin acentos ni espacios, + "1234" —
 // p.ej. "Sandra" → "sandra1234", "María José" → "maria1234" (solo la
 // primera palabra). La paciente la cambia obligatoriamente en su primer

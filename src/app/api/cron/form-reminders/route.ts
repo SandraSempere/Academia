@@ -3,20 +3,18 @@ import { formularioReminder, extraMonthFormularioReminder } from "@/lib/revision
 import { sendPatientFormReminderEmail } from "@/lib/email";
 import { notifyPatient } from "@/lib/notify";
 
-// Mismo criterio de sufijo que sendPatientFormReminderEmail, para que la
-// notificación push diga lo mismo que el email que llega a la vez.
 function reminderPush(week: 2 | 6 | 10 | 14, when: "hoy" | "mañana", cycle: 1 | 2) {
   const cycleSuffix = week === 14 ? " · Mes extra" : cycle === 2 ? " · Renovación" : "";
-  const title = when === "hoy" ? `Hoy toca tu seguimiento${cycleSuffix} 📋` : `Mañana toca tu seguimiento${cycleSuffix} 📋`;
-  const body = `Semana ${week}. Entra para rellenar tu formulario.`;
+  const title = "Recordatorio de formulario quincenal";
+  const body = `Semana ${week}${cycleSuffix} — ${when === "hoy" ? "es hoy" : "es mañana"}.`;
   const url = cycle === 2 ? `/revision-quincenal/${week}?cycle=2` : `/revision-quincenal/${week}`;
   return { title, body, url };
 }
 
 // Comprobación diaria: a qué pacientes les toca (mañana o hoy) rellenar su
 // Formulario de revisión quincenal (semana 2/6/10, o semana 14 del mes
-// extra) — les manda un recordatorio (notificación push si están
-// suscritas, si no por email) en los dos momentos (el día antes y el día
+// extra) — les manda un recordatorio (email siempre, y notificación push
+// además si están suscritas) en los dos momentos (el día antes y el día
 // exacto), cada uno con su propio "ya avisado" para no repetirlo.
 // Comprueba el ciclo original, el de renovación (si está activada) y el
 // mes extra (si está activado), cada uno con sus propias fechas.

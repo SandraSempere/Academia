@@ -1,17 +1,15 @@
 // Punto único para avisar a una paciente de algo (recordatorio de
-// formulario, plan nutricional nuevo, vídeo de respuesta...): intenta
-// primero la notificación push y, solo si no se pudo entregar a ningún
-// dispositivo (no está suscrita, o todas sus suscripciones habían
-// caducado), manda el email de respaldo — nunca los dos a la vez.
+// formulario, plan nutricional nuevo, vídeo de respuesta...): manda
+// siempre el email, y además la notificación push si la tiene activada.
+// Sandra pidió expresamente los dos a la vez (no solo el email como
+// respaldo del push) — mucha gente desactiva las notificaciones y se le
+// puede olvidar, así que el email es quien de verdad no falla.
 import { sendPushToPatient } from "@/lib/push";
 
 export async function notifyPatient(
   patientProfileId: string,
   push: { title: string; body: string; url?: string },
-  sendEmailFallback: () => Promise<void>,
+  sendEmail: () => Promise<void>,
 ) {
-  const delivered = await sendPushToPatient(patientProfileId, push);
-  if (!delivered) {
-    await sendEmailFallback();
-  }
+  await Promise.all([sendPushToPatient(patientProfileId, push), sendEmail()]);
 }

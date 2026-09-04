@@ -120,16 +120,36 @@ export async function sendPasswordResetEmail(to: string, name: string, resetUrl:
   await sendEmail(to, "Restablecer tu contraseña", text);
 }
 
-// Aviso de respaldo (solo si no tiene notificaciones push activadas) de que
-// Sandra le ha subido un Plan nutricional nuevo.
+// Aviso (siempre, además de la notificación push si la tiene activada) de
+// que Sandra le ha subido un Plan nutricional nuevo.
 export async function sendPlanNutricionalEmail(to: string, name: string) {
-  const text = `¡Hola ${name}!\n\nTe he subido tu plan nutricional. Entra en tu espacio de Origen Digestivo, en Sesiones, para verlo.\n\nUn abrazo,\nSandra`;
-  await sendEmail(to, "🍽️ Tienes un plan nutricional nuevo", text);
+  const text = `¡Hola ${name}!
+
+Ya tienes tu plan nutricional personalizado disponible en tu espacio de Origen Digestivo.
+
+He preparado cada parte pensando en tu caso concreto — te recomiendo leerlo con calma antes de empezar a aplicarlo, para que entiendas el porqué de cada cosa y no solo el qué.
+
+Entra en tu espacio cuando puedas para verlo.
+
+Cualquier duda que te surja, aquí estoy.
+
+Un abrazo,
+Sandra`;
+  await sendEmail(to, "Tu plan nutricional ya está listo 🌿", text);
 }
 
-// Aviso de respaldo (solo si no tiene notificaciones push activadas) de que
-// Sandra le ha dejado un vídeo respondiendo a su revisión quincenal.
-export async function sendQuincenalVideoEmail(to: string, name: string, week: number) {
-  const text = `¡Hola ${name}!\n\nTe he dejado un vídeo respondiendo a tu revisión de la semana ${week}. Entra en tu espacio de Origen Digestivo, en Mi progreso, para verlo.\n\nUn abrazo,\nSandra`;
-  await sendEmail(to, "🎥 Tienes un vídeo nuevo de tu revisión", text);
+// Aviso (siempre, además de la notificación push si la tiene activada) de
+// que Sandra le ha dejado un vídeo respondiendo a su revisión quincenal.
+export async function sendQuincenalVideoEmail(to: string, name: string) {
+  const text = `¡Hola ${name}!
+
+Ya he revisado tu formulario de seguimiento y te he dejado un vídeo personalizado con todo lo que he visto: cómo vas evolucionando, qué está funcionando bien y qué ajustes tocan a partir de ahora.
+
+Entra en tu espacio de Origen Digestivo cuando puedas para verlo con calma.
+
+Si después de verlo te queda alguna duda, aquí estoy.
+
+Un abrazo,
+Sandra`;
+  await sendEmail(to, "Tu revisión ya está lista 🎥", text);
 }

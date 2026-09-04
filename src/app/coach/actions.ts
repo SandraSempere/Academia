@@ -235,7 +235,7 @@ export async function updateQuincenalVideo(formData: FormData) {
         body: `Sandra te ha dejado un vídeo respondiendo a tu revisión de la semana ${week}.`,
         url: "/progreso",
       },
-      () => sendQuincenalVideoEmail(profile.user.email, profile.user.name ?? "", week),
+      () => sendQuincenalVideoEmail(profile.user.email, profile.user.name ?? ""),
     );
   }
 
@@ -321,9 +321,9 @@ export async function uploadPatientPlanFile(formData: FormData) {
     update: { url: `/uploads/planes/${filename}` },
   });
 
-  // Avisa a la paciente de que hay un plan nutricional nuevo — push si está
-  // suscrita, si no email. Sin await: no debe retrasar la respuesta de la
-  // subida del archivo.
+  // Avisa a la paciente de que hay un plan nutricional nuevo — email
+  // siempre, más push si está suscrita. Sin await: no debe retrasar la
+  // respuesta de la subida del archivo.
   if (category === "nutricional") {
     notifyPatient(
       profile.id,

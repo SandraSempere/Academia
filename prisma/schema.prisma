@@ -78,6 +78,7 @@ model PatientProfile {
   appointments     Appointment[]
   mealDiaryEntries MealDiaryEntry[]
   clinicalNotes    ClinicalNote[]
+  pushSubscriptions PushSubscription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -465,4 +466,19 @@ model BackupConfig {
   folderId     String?
   connectedAt  DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// Suscripción a notificaciones push del navegador (Web Push) de una
+// paciente — puede tener varias a la vez (móvil + ordenador, o si la
+// reinstala). Cada una es la que devuelve `PushManager.subscribe()` en el
+// navegador: endpoint único del proveedor (Google/Apple/Mozilla...) + las
+// dos claves de cifrado.
+model PushSubscription {
+  id               String         @id @default(cuid())
+  patientProfileId String
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  endpoint         String         @unique
+  p256dh           String
+  auth             String
+  createdAt        DateTime       @default(now())
 }

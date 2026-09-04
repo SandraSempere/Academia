@@ -5,6 +5,7 @@ import { getCurrentPatientProfile, getProgressSummary } from "@/lib/patient";
 import { LessonItem } from "@/components/lesson-item";
 import { LeafAccent } from "@/components/leaf-accent";
 import { IntakeScreeningForm } from "@/components/intake-screening-form";
+import { PushNotificationsCard } from "@/components/push-notifications-card";
 import { ResourceCard } from "@/components/resource-card";
 import { formularioReminder } from "@/lib/revisiones";
 
@@ -173,6 +174,8 @@ export default async function HomePage() {
           </p>
         </div>
       )}
+
+      {profile && <PushNotificationsCard />}
 
       <section>
         <p className="text-xs font-medium uppercase tracking-wide text-brand-secondary">

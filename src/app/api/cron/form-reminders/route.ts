@@ -1,6 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { formularioReminder, extraMonthFormularioReminder } from "@/lib/revisiones";
 import { sendPatientFormReminderEmail } from "@/lib/email";
+import { sendPushToPatient } from "@/lib/push";
+
+// Mismo criterio de sufijo que sendPatientFormReminderEmail, para que la
+// notificación push diga lo mismo que el email que llega a la vez.
+function reminderPush(week: 2 | 6 | 10 | 14, when: "hoy" | "mañana", cycle: 1 | 2) {
+  const cycleSuffix = week === 14 ? " · Mes extra" : cycle === 2 ? " · Renovación" : "";
+  const title = when === "hoy" ? `Hoy toca tu seguimiento${cycleSuffix} 📋` : `Mañana toca tu seguimiento${cycleSuffix} 📋`;
+  const body = `Semana ${week}. Entra para rellenar tu formulario.`;
+  const url = cycle === 2 ? `/revision-quincenal/${week}?cycle=2` : `/revision-quincenal/${week}`;
+  return { title, body, url };
+}
 
 // Comprobación diaria: a qué pacientes les toca (mañana o hoy) rellenar su
 // Formulario de revisión quincenal (semana 2/6/10, o semana 14 del mes
@@ -57,6 +68,7 @@ export async function GET(request: Request) {
       });
 
       await sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, cycle);
+      await sendPushToPatient(profile.id, reminderPush(due.week, due.when, cycle));
       remindersSent++;
     }
 
@@ -77,6 +89,7 @@ export async function GET(request: Request) {
           });
 
           await sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, 1);
+          await sendPushToPatient(profile.id, reminderPush(due.week, due.when, 1));
           remindersSent++;
         }
       }

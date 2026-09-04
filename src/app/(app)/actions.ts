@@ -359,3 +359,43 @@ export async function saveCommitmentForm(formData: FormData) {
   revalidatePath("/linea-de-intentos");
   revalidatePath("/coach");
 }
+
+// Guarda la suscripción a notificaciones push que acaba de crear el
+// navegador (`PushManager.subscribe()`) — se llama directamente desde el
+// componente cliente, no desde un <form>. `upsert` por endpoint porque el
+// mismo navegador puede volver a suscribirse (p.ej. tras borrar datos) sin
+// que eso deba crear una fila duplicada.
+export async function savePushSubscription(subscription: {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "PATIENT") {
+    throw new Error("No autorizado");
+  }
+  if (!subscription?.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
+    throw new Error("Suscripción no válida");
+  }
+
+  const profile = await prisma.patientProfile.findUnique({ where: { userId: session.user.id } });
+  if (!profile) throw new Error("Perfil no encontrado");
+
+  await prisma.pushSubscription.upsert({
+    where: { endpoint: subscription.endpoint },
+    create: {
+      patientProfileId: profile.id,
+      endpoint: subscription.endpoint,
+      p256dh: subscription.keys.p256dh,
+      auth: subscription.keys.auth,
+    },
+    update: { p256dh: subscription.keys.p256dh, auth: subscription.keys.auth },
+  });
+}
+
+export async function deletePushSubscription(endpoint: string) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "PATIENT") {
+    throw new Error("No autorizado");
+  }
+  await prisma.pushSubscription.deleteMany({ where: { endpoint } });
+}

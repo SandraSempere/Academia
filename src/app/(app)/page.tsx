@@ -167,6 +167,10 @@ export default async function HomePage() {
               style={{ width: `${progress.percent}%` }}
             />
           </div>
+          <p className="mt-2 text-xs text-foreground/50">
+            Recuerda ir marcando tu progreso en la hoja de ruta para llevar
+            control de todo el proceso
+          </p>
         </div>
       )}
 

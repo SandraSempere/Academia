@@ -38,6 +38,7 @@ export default async function SesionesPage() {
   ]);
 
   const planFileByKey = new Map(planFiles.map((f) => [`${f.category}-${f.cycle}-${f.slot}`, f]));
+  const planFileSlotCount = profile?.extraMonthEnabled ? 5 : 4;
   const resourceByTitle = new Map(resources.map((r) => [r.title, r]));
   const nutritionalGuide = resourceByTitle.get(NUTRITIONAL_GUIDE_TITLE);
   const supplementationGuide = resourceByTitle.get(SUPPLEMENTATION_GUIDE_TITLE);
@@ -82,6 +83,7 @@ export default async function SesionesPage() {
       <PlanFilesSection
         title="🗓️ Plan de acción"
         slotLabel="Plan de acción"
+        slotCount={planFileSlotCount}
         category="accion"
         planFileByKey={planFileByKey}
         hideEmptySlots
@@ -90,15 +92,18 @@ export default async function SesionesPage() {
       <PlanFilesSection
         title="🍽️ Plan nutricional"
         slotLabel="Plan nutricional"
+        slotCount={planFileSlotCount}
         category="nutricional"
         planFileByKey={planFileByKey}
         extraResource={nutritionalGuide}
         hideEmptySlots
+        showVideo
       />
 
       <PlanFilesSection
         title="💊 Suplementación"
         slotLabel="Suplementación"
+        slotCount={planFileSlotCount}
         category="suplementacion"
         planFileByKey={planFileByKey}
         extraResource={supplementationGuide}
@@ -108,6 +113,7 @@ export default async function SesionesPage() {
       <PlanFilesSection
         title="🍳 Recetas"
         slotLabel="Receta"
+        slotCount={planFileSlotCount}
         category="recetas"
         planFileByKey={planFileByKey}
         sharedResources={recipeResources}
@@ -132,6 +138,7 @@ export default async function SesionesPage() {
             cycle={2}
             planFileByKey={planFileByKey}
             hideEmptySlots
+            showVideo
           />
 
           <PlanFilesSection
@@ -209,26 +216,37 @@ function PlanFilesSection({
   title,
   slotLabel,
   slotLabels,
+  slotCount = 4,
   category,
   cycle = 1,
   planFileByKey,
   extraResource,
   sharedResources,
   hideEmptySlots,
+  showVideo,
 }: {
   title: string;
   slotLabel?: string;
   slotLabels?: string[];
+  // El mes extra añade un 5º hueco (solo cycle 1) — no aplica cuando se
+  // pasan slotLabels a mano (reintroducción, que ya tiene sus 4 propios).
+  slotCount?: number;
   category: string;
   cycle?: number;
-  planFileByKey: Map<string, { url: string | null }>;
+  planFileByKey: Map<string, { url: string | null; videoUrl?: string | null }>;
   extraResource?: { id: string; title: string; description: string | null; type: string; url: string | null };
   sharedResources?: { id: string; title: string; description: string | null; type: string; url: string | null }[];
   hideEmptySlots?: boolean;
+  // Muestra el vídeo (Loom) de la coach debajo del PDF de cada hueco, si lo
+  // tiene — de momento solo se usa para el Plan nutricional.
+  showVideo?: boolean;
 }) {
-  const labels = slotLabels ?? [1, 2, 3, 4].map((n) => `${slotLabel} ${n}`);
+  const labels = slotLabels ?? Array.from({ length: slotCount }, (_, i) => `${slotLabel} ${i + 1}`);
   const slots = labels
-    .map((label, i) => ({ label, url: planFileByKey.get(`${category}-${cycle}-${i + 1}`)?.url, isFirst: i === 0 }))
+    .map((label, i) => {
+      const file = planFileByKey.get(`${category}-${cycle}-${i + 1}`);
+      return { label, url: file?.url, videoUrl: file?.videoUrl, isFirst: i === 0 };
+    })
     .filter((slot) => !hideEmptySlots || slot.isFirst || slot.url);
 
   return (
@@ -253,7 +271,12 @@ function PlanFilesSection({
           />
         ))}
         {slots.map((slot) => (
-          <ResourceCard key={slot.label} title={slot.label} type="PDF" url={slot.url} />
+          <div key={slot.label} className="flex flex-col gap-2">
+            <ResourceCard title={slot.label} type="PDF" url={slot.url} />
+            {showVideo && slot.videoUrl && (
+              <VideoEmbed title={`🎥 ${slot.label} explicado`} url={slot.videoUrl} />
+            )}
+          </div>
         ))}
       </div>
     </details>

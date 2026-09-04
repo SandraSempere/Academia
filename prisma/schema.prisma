@@ -115,6 +115,7 @@ model PatientPlanFile {
   cycle            Int            @default(1) // 1 = programa original, 2 = renovación (solo accion/nutricional/suplementacion)
   slot             Int // 1-4, o 5 para el mes extra (solo cycle 1, categorías accion/nutricional/suplementacion/recetas)
   url              String?
+  videoUrl         String? // vídeo (Loom) de la coach explicando este documento — de momento solo se usa/muestra para category "nutricional"
   updatedAt        DateTime       @updatedAt
 
   @@unique([patientProfileId, category, cycle, slot])

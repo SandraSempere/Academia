@@ -315,6 +315,35 @@ export async function uploadPatientPlanFile(formData: FormData) {
   revalidatePath("/coach/revisiones");
 }
 
+// Vídeo (Loom) de la coach explicando un documento concreto — de momento
+// solo se usa para el Plan nutricional, pero el campo es genérico (mismo
+// PatientPlanFile) por si algún día hace falta para otra categoría.
+export async function updatePlanFileVideo(formData: FormData) {
+  await requireCoach();
+
+  const userId = String(formData.get("userId") ?? "");
+  const category = String(formData.get("category") ?? "");
+  const slot = Number(formData.get("slot"));
+  const cycle = Number(formData.get("cycle") ?? 1);
+  const videoUrl = String(formData.get("videoUrl") ?? "").trim();
+
+  if (!PLAN_FILE_CATEGORIES.includes(category)) throw new Error("Categoría no válida");
+  if (![1, 2, 3, 4, 5].includes(slot)) throw new Error("Hueco no válido");
+  if (![1, 2].includes(cycle)) throw new Error("Ciclo no válido");
+
+  const profile = await prisma.patientProfile.findUnique({ where: { userId } });
+  if (!profile) throw new Error("Paciente no encontrada");
+
+  await prisma.patientPlanFile.upsert({
+    where: { patientProfileId_category_cycle_slot: { patientProfileId: profile.id, category, cycle, slot } },
+    create: { patientProfileId: profile.id, category, cycle, slot, videoUrl: videoUrl || null },
+    update: { videoUrl: videoUrl || null },
+  });
+
+  revalidatePath(`/coach/pacientes/${userId}`);
+  revalidatePath("/sesiones");
+}
+
 const REVISION_DATE_FIELDS: Record<string, { source: string; label: string }> = {
   revision4Date: { source: "revision4", label: "Revisión semana 4" },
   revision8Date: { source: "revision8", label: "Revisión semana 8" },

@@ -619,6 +619,11 @@ export default async function PacienteDetailPage({
                   slot={slot}
                   label={`${section.title} ${slot}`}
                   currentUrl={planFileByKey.get(`${section.category}-1-${slot}`)?.url}
+                  videoUrl={
+                    section.category === "nutricional"
+                      ? (planFileByKey.get(`${section.category}-1-${slot}`)?.videoUrl ?? null)
+                      : undefined
+                  }
                 />
               ))}
             </div>
@@ -667,6 +672,11 @@ export default async function PacienteDetailPage({
                     cycle={2}
                     label={`${section.title} ${slot}`}
                     currentUrl={planFileByKey.get(`${section.category}-2-${slot}`)?.url}
+                    videoUrl={
+                      section.category === "nutricional"
+                        ? (planFileByKey.get(`${section.category}-2-${slot}`)?.videoUrl ?? null)
+                        : undefined
+                    }
                   />
                 ))}
               </div>

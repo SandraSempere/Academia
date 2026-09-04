@@ -7,6 +7,7 @@ import {
   enableRenewal,
   enableExtraMonth,
   resetSymptomForm,
+  sendTestPush,
   blockPatient,
   unblockPatient,
   resetPatientPassword,
@@ -161,6 +162,9 @@ export default async function PacienteDetailPage({
   if (!patient || !patient.patientProfile) notFound();
 
   const progress = await getProgressSummary(patient.patientProfile.id);
+  const pushSubscriptionCount = await prisma.pushSubscription.count({
+    where: { patientProfileId: patient.patientProfile.id },
+  });
   const clinicalNotes = await prisma.clinicalNote.findMany({
     where: { patientProfileId: patient.patientProfile.id },
     orderBy: { date: "desc" },
@@ -299,6 +303,19 @@ export default async function PacienteDetailPage({
               </button>
             </form>
           </details>
+
+          {pushSubscriptionCount > 0 && (
+            <form action={sendTestPush}>
+              <input type="hidden" name="userId" value={patient.id} />
+              <button
+                type="submit"
+                className="rounded-full border border-black/10 bg-blanco-roto px-3 py-1.5 text-xs font-medium hover:border-brand-primary"
+                title={`${pushSubscriptionCount} dispositivo(s) suscrito(s)`}
+              >
+                🔔 Enviar notificación de prueba
+              </button>
+            </form>
+          )}
         </div>
       </div>
 

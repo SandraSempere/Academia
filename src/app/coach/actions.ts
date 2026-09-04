@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
 import { addDays, atMidnight, computeExtraMonthCheckpoints } from "@/lib/revisiones";
 import { sendWelcomeEmail } from "@/lib/email";
+import { sendPushToPatient } from "@/lib/push";
 
 async function requireCoach() {
   const session = await auth();
@@ -56,6 +57,23 @@ export async function resetSymptomForm(formData: FormData) {
   revalidatePath(`/coach/pacientes/${userId}`);
   revalidatePath("/formulario-sintomas");
   revalidatePath("/coach");
+}
+
+// Botón de un solo uso para comprobar que las notificaciones push llegan de
+// verdad a un dispositivo ya suscrito — no forma parte de ningún flujo
+// automático, es solo para pruebas manuales desde la ficha de la paciente.
+export async function sendTestPush(formData: FormData) {
+  await requireCoach();
+
+  const userId = String(formData.get("userId") ?? "");
+  const profile = await prisma.patientProfile.findUnique({ where: { userId } });
+  if (!profile) throw new Error("Paciente no encontrada");
+
+  await sendPushToPatient(profile.id, {
+    title: "🔔 Notificación de prueba",
+    body: "Si ves esto, las notificaciones están funcionando.",
+    url: "/",
+  });
 }
 
 // Nombre de pila en minúsculas, sin acentos ni espacios, + "1234" —

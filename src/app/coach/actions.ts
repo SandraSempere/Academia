@@ -9,8 +9,9 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
 import { addDays, atMidnight, computeExtraMonthCheckpoints } from "@/lib/revisiones";
-import { sendWelcomeEmail } from "@/lib/email";
+import { sendWelcomeEmail, sendPlanNutricionalEmail, sendQuincenalVideoEmail } from "@/lib/email";
 import { sendPushToPatient } from "@/lib/push";
+import { notifyPatient } from "@/lib/notify";
 
 async function requireCoach() {
   const session = await auth();
@@ -209,14 +210,34 @@ export async function updateQuincenalVideo(formData: FormData) {
   if (![2, 6, 10, 14].includes(week)) throw new Error("Semana no válida");
   const coachVideoUrl = String(formData.get("coachVideoUrl") ?? "");
 
-  const profile = await prisma.patientProfile.findUnique({ where: { userId } });
+  const profile = await prisma.patientProfile.findUnique({ where: { userId }, include: { user: true } });
   if (!profile) throw new Error("Paciente no encontrada");
+
+  const existing = await prisma.quincenalForm.findUnique({
+    where: { patientProfileId_cycle_week: { patientProfileId: profile.id, cycle, week } },
+  });
 
   await prisma.quincenalForm.upsert({
     where: { patientProfileId_cycle_week: { patientProfileId: profile.id, cycle, week } },
     create: { patientProfileId: profile.id, cycle, week, answers: {}, coachVideoUrl: coachVideoUrl || null },
     update: { coachVideoUrl: coachVideoUrl || null },
   });
+
+  // Avisa solo si de verdad hay un vídeo nuevo o distinto — para no
+  // reavisar cada vez que se vuelve a guardar el mismo enlace (p.ej. al
+  // corregir una errata en otro campo del mismo formulario). Sin await:
+  // no debe retrasar la respuesta del guardado.
+  if (coachVideoUrl && coachVideoUrl !== existing?.coachVideoUrl) {
+    notifyPatient(
+      profile.id,
+      {
+        title: "🎥 Vídeo de tu revisión",
+        body: `Sandra te ha dejado un vídeo respondiendo a tu revisión de la semana ${week}.`,
+        url: "/progreso",
+      },
+      () => sendQuincenalVideoEmail(profile.user.email, profile.user.name ?? "", week),
+    );
+  }
 
   revalidatePath(`/coach/pacientes/${userId}`);
   revalidatePath("/progreso");
@@ -278,7 +299,7 @@ export async function uploadPatientPlanFile(formData: FormData) {
     throw new Error("El archivo debe ser un PDF.");
   }
 
-  const profile = await prisma.patientProfile.findUnique({ where: { userId } });
+  const profile = await prisma.patientProfile.findUnique({ where: { userId }, include: { user: true } });
   if (!profile) throw new Error("Paciente no encontrada");
   if (cycle === 2 && !profile.renewalEnabled) throw new Error("La renovación no está activada");
   // El hueco 5 es el del mes extra (semanas 13-16) — solo existe en el
@@ -299,6 +320,17 @@ export async function uploadPatientPlanFile(formData: FormData) {
     create: { patientProfileId: profile.id, category, cycle, slot, url: `/uploads/planes/${filename}` },
     update: { url: `/uploads/planes/${filename}` },
   });
+
+  // Avisa a la paciente de que hay un plan nutricional nuevo — push si está
+  // suscrita, si no email. Sin await: no debe retrasar la respuesta de la
+  // subida del archivo.
+  if (category === "nutricional") {
+    notifyPatient(
+      profile.id,
+      { title: "🍽️ Nuevo plan nutricional", body: "Sandra te ha subido tu plan nutricional.", url: "/sesiones" },
+      () => sendPlanNutricionalEmail(profile.user.email, profile.user.name ?? ""),
+    );
+  }
 
   // El primer "Plan nutricional" (hueco 1) marca el inicio real del plan de
   // 12 semanas — dispara el calendario de "Revisiones". Solo aplica al ciclo

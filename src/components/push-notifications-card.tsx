@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { savePushSubscription, deletePushSubscription } from "@/app/(app)/actions";
+import { savePushSubscription } from "@/app/(app)/actions";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -79,52 +79,23 @@ export function PushNotificationsCard() {
     }
   }
 
-  async function desactivar() {
-    setPending(true);
-    setError(null);
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-      if (subscription) {
-        await deletePushSubscription(subscription.endpoint);
-        await subscription.unsubscribe();
-      }
-      setStatus("unsubscribed");
-    } catch {
-      setError("No se pudo desactivar. Inténtalo de nuevo.");
-    } finally {
-      setPending(false);
-    }
-  }
-
-  if (status === "checking" || status === "unsupported") return null;
+  // Una vez activadas, la tarjeta desaparece de Inicio — no hace falta
+  // seguir recordándoselo cada vez que entra. Si alguna vez quiere
+  // desactivarlas, puede hacerlo desde los ajustes de notificaciones de su
+  // propio móvil/navegador (mismo camino que para bloquearlas).
+  if (status === "checking" || status === "unsupported" || status === "subscribed") return null;
 
   return (
     <div className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
       <p className="font-medium">🔔 Notificaciones</p>
 
-      {status === "subscribed" && (
-        <>
-          <p className="mt-1 text-sm text-foreground/70">
-            Activadas — te avisaremos al móvil cuando te toque rellenar un formulario.
-          </p>
-          <button
-            type="button"
-            onClick={desactivar}
-            disabled={pending}
-            className="mt-3 text-xs text-foreground/50 underline hover:text-brand-primary disabled:opacity-60"
-          >
-            Desactivar
-          </button>
-        </>
-      )}
-
       {status === "unsubscribed" && (
         <>
           <p className="mt-1 text-sm text-foreground/70">
-            Actívalas para que te avise el móvil, además del email, cuando te
-            toque rellenar un formulario. En iPhone, primero tienes que
-            haber instalado la app en la pantalla de inicio.
+            Actívalas para que te avise el móvil cuando te toque rellenar un
+            formulario, te suba tu plan nutricional o te deje un vídeo de tu
+            revisión. En iPhone, primero tienes que haber instalado la app
+            en la pantalla de inicio.
           </p>
           <button
             type="button"

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { formularioReminder, extraMonthFormularioReminder } from "@/lib/revisiones";
 import { sendPatientFormReminderEmail } from "@/lib/email";
-import { sendPushToPatient } from "@/lib/push";
+import { notifyPatient } from "@/lib/notify";
 
 // Mismo criterio de sufijo que sendPatientFormReminderEmail, para que la
 // notificación push diga lo mismo que el email que llega a la vez.
@@ -15,11 +15,11 @@ function reminderPush(week: 2 | 6 | 10 | 14, when: "hoy" | "mañana", cycle: 1 |
 
 // Comprobación diaria: a qué pacientes les toca (mañana o hoy) rellenar su
 // Formulario de revisión quincenal (semana 2/6/10, o semana 14 del mes
-// extra) — les manda un recordatorio por email en los dos momentos (el día
-// antes y el día exacto), cada uno con su propio "ya avisado" para no
-// repetirlo. Comprueba el ciclo original, el de renovación (si está
-// activada) y el mes extra (si está activado), cada uno con sus propias
-// fechas.
+// extra) — les manda un recordatorio (notificación push si están
+// suscritas, si no por email) en los dos momentos (el día antes y el día
+// exacto), cada uno con su propio "ya avisado" para no repetirlo.
+// Comprueba el ciclo original, el de renovación (si está activada) y el
+// mes extra (si está activado), cada uno con sus propias fechas.
 //
 // En producción la llama un servicio de Cron Job aparte en Railway
 // ("Recordatorio pacientes", mismo repo, comando propio), una vez al día.
@@ -67,8 +67,9 @@ export async function GET(request: Request) {
         update: { [sentField]: today },
       });
 
-      await sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, cycle);
-      await sendPushToPatient(profile.id, reminderPush(due.week, due.when, cycle));
+      await notifyPatient(profile.id, reminderPush(due.week, due.when, cycle), () =>
+        sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, cycle),
+      );
       remindersSent++;
     }
 
@@ -88,8 +89,9 @@ export async function GET(request: Request) {
             update: { [sentField]: today },
           });
 
-          await sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, 1);
-          await sendPushToPatient(profile.id, reminderPush(due.week, due.when, 1));
+          await notifyPatient(profile.id, reminderPush(due.week, due.when, 1), () =>
+            sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, 1),
+          );
           remindersSent++;
         }
       }

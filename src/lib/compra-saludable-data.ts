@@ -241,45 +241,6 @@ export const PESCADO: PescadoRow[] = [
   { nombre: "Mejillones", temporada: "Sept–abril (veda en verano)", comoPedirlo: "Al vapor, sin sofrito de ajo/cebolla si estás en fase restrictiva.", congela: "Cocidos, sin valva" },
 ];
 
-export type PantryCategory = {
-  categoria: string;
-  items: { nombre: string; porQue: string }[];
-};
-
-export const DESPENSA: PantryCategory[] = [
-  {
-    categoria: "Aceites y grasas",
-    items: [
-      { nombre: "Aceite de oliva virgen extra", porQue: "Grasa base para casi todo, sin ingredientes añadidos que vigilar." },
-      { nombre: "Aceite en spray", porQue: "Práctico para no pasarte de cantidad al cocinar sin sofreír de más." },
-    ],
-  },
-  {
-    categoria: "Cereales y almidones",
-    items: [
-      { nombre: "Arroz (blanco o integral, según tu pauta)", porQue: "Base neutra y bien tolerada en la mayoría de fases." },
-      { nombre: "Avena certificada sin gluten (si la toleras)", porQue: "Desayuno rápido; comprueba que no lleve inulina añadida." },
-      { nombre: "Patata y boniato", porQue: "Fuente de energía sencilla, sin etiqueta que leer." },
-    ],
-  },
-  {
-    categoria: "Proteína de bote y congelador",
-    items: [
-      { nombre: "Atún y caballa en conserva (al natural o en AOVE)", porQue: "Proteína lista sin necesidad de fresco cada día." },
-      { nombre: "Pescado congelado en filetes sueltos", porQue: "Te permite coger solo la ración que necesitas." },
-      { nombre: "Huevos", porQue: "Comodín de proteína completa, sin lista de ingredientes." },
-    ],
-  },
-  {
-    categoria: "Condimentos que no suelen dar problema",
-    items: [
-      { nombre: "Aceite con infusión de ajo (sin el ajo)", porQue: "Da sabor sin el fructano del ajo entero." },
-      { nombre: "Hierbas aromáticas frescas o secas", porQue: "Sabor sin fermentables — perejil, cebollino (la parte verde), albahaca." },
-      { nombre: "Sal, pimienta, pimentón, cúrcuma", porQue: "Especias puras, sin mezcla con extractos de cebolla/ajo en polvo." },
-    ],
-  },
-];
-
 export type ConsejoCompra = {
   titulo: string;
   texto: string;

@@ -6,7 +6,6 @@ import { LeafAccent } from "@/components/leaf-accent";
 import {
   SUPERMARKETS,
   PESCADO,
-  DESPENSA,
   CONSEJOS,
 } from "@/lib/compra-saludable-data";
 import { PRODUCTOS, CATEGORIAS_ORDEN } from "@/lib/productos-data";
@@ -14,7 +13,6 @@ import { PRODUCTOS, CATEGORIAS_ORDEN } from "@/lib/productos-data";
 const TABS = [
   { id: "supermercados", label: "Supermercados" },
   { id: "mercado", label: "Mercado fresco" },
-  { id: "despensa", label: "Despensa base" },
   { id: "consejos", label: "Consejos de compra" },
 ] as const;
 
@@ -250,37 +248,6 @@ export default function CompraSaludablePage() {
               suelen llevar menos conservantes y aditivos.
             </p>
           </div>
-        </div>
-      )}
-
-      {tab === "despensa" && (
-        <div className="flex flex-col gap-6">
-          <p className="text-sm text-foreground/70">
-            Tener esto en casa hace que improvisar una comida sea más
-            fácil, sin depender de un ultraprocesado de última hora.
-          </p>
-          {DESPENSA.map((cat) => (
-            <div
-              key={cat.categoria}
-              className="rounded-2xl border border-black/5 bg-blanco-roto p-5"
-            >
-              <p className="font-semibold">{cat.categoria}</p>
-              <ul className="mt-3 flex flex-col gap-2">
-                {cat.items.map((item) => (
-                  <li
-                    key={item.nombre}
-                    className="rounded-lg bg-brand-secondary-soft/60 px-3 py-2 text-sm"
-                  >
-                    <span className="font-medium">{item.nombre}</span>
-                    <span className="text-foreground/70">
-                      {" "}
-                      — {item.porQue}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
         </div>
       )}
 

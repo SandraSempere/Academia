@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCurrentPatientProfile } from "@/lib/patient";
+import { computeCheckpoints } from "@/lib/revisiones";
 import { LessonItem } from "@/components/lesson-item";
 import { ResourceCard } from "@/components/resource-card";
+
+// El Módulo 4 (order 4) se bloquea hasta la semana 10 del proceso — misma
+// fecha que "Formulario semana 10" en /coach/revisiones y en Mi progreso,
+// calculada igual a partir de cuándo se subió el primer Plan nutricional.
+const LOCKED_MODULE_ORDER = 4;
 
 export const dynamic = "force-dynamic";
 
@@ -78,14 +85,24 @@ const RESOURCE_BELOW_LESSON: Record<string, string[]> = {
 };
 
 export default async function AcademiaPage() {
-  const modules = await prisma.module.findMany({
-    where: { order: { gte: 1 } },
-    orderBy: { order: "asc" },
-    include: {
-      lessons: { orderBy: { order: "asc" } },
-      resources: { orderBy: { order: "asc" } },
-    },
-  });
+  const [modules, profile] = await Promise.all([
+    prisma.module.findMany({
+      where: { order: { gte: 1 } },
+      orderBy: { order: "asc" },
+      include: {
+        lessons: { orderBy: { order: "asc" } },
+        resources: { orderBy: { order: "asc" } },
+      },
+    }),
+    getCurrentPatientProfile(),
+  ]);
+
+  const week10Date = profile?.planStartDate
+    ? computeCheckpoints(profile.planStartDate, profile.revision4Date, profile.revision8Date).find(
+        (c) => "formWeek" in c && c.formWeek === 10,
+      )?.date
+    : null;
+  const module4Unlocked = !!week10Date && new Date() >= week10Date;
 
   return (
     <div className="flex flex-col gap-8">
@@ -210,44 +227,57 @@ export default async function AcademiaPage() {
             );
           }
 
+          const isLocked = module.order === LOCKED_MODULE_ORDER && !module4Unlocked;
+
           return (
             <details key={module.id} className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
               <summary className="cursor-pointer font-semibold">
-                {module.icon} {module.title}
+                {isLocked ? "🔒" : module.icon} {module.title}
               </summary>
-              {module.description && (
-                <p className="mt-1 text-sm text-foreground/70">
-                  {module.description}
-                </p>
-              )}
-              {MODULE_NOTES[module.title] && (
-                <p className="mt-1 text-sm italic text-foreground/60">
-                  {MODULE_NOTES[module.title]}
-                </p>
-              )}
-              <ul className="mt-4 flex flex-col gap-2">
-                {regularLessons.map(renderLesson)}
-                {endOfModuleResources.map((resource) => (
-                  <li key={resource.id}>
-                    <ResourceCard
-                      title={resource.title}
-                      description={resource.description}
-                      type={resource.type}
-                      url={resource.url}
-                      tone={END_OF_MODULE_RESOURCE_TONE[resource.title]}
-                    />
-                  </li>
-                ))}
-              </ul>
 
-              {gridResources.length > 0 && (
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  {gridResources.map((resource) => renderResourceOrLink(resource))}
-                </div>
-              )}
+              {isLocked ? (
+                <p className="mt-2 text-sm text-foreground/60">
+                  {week10Date
+                    ? `Este bloque se desbloquea en la semana 10 de tu proceso (${week10Date.toLocaleDateString("es-ES")}).`
+                    : "Este bloque se desbloquea en la semana 10 de tu proceso."}
+                </p>
+              ) : (
+                <>
+                  {module.description && (
+                    <p className="mt-1 text-sm text-foreground/70">
+                      {module.description}
+                    </p>
+                  )}
+                  {MODULE_NOTES[module.title] && (
+                    <p className="mt-1 text-sm italic text-foreground/60">
+                      {MODULE_NOTES[module.title]}
+                    </p>
+                  )}
+                  <ul className="mt-4 flex flex-col gap-2">
+                    {regularLessons.map(renderLesson)}
+                    {endOfModuleResources.map((resource) => (
+                      <li key={resource.id}>
+                        <ResourceCard
+                          title={resource.title}
+                          description={resource.description}
+                          type={resource.type}
+                          url={resource.url}
+                          tone={END_OF_MODULE_RESOURCE_TONE[resource.title]}
+                        />
+                      </li>
+                    ))}
+                  </ul>
 
-              {endOfModuleLessons.length > 0 && (
-                <ul className="mt-4 flex flex-col gap-2">{endOfModuleLessons.map(renderLesson)}</ul>
+                  {gridResources.length > 0 && (
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      {gridResources.map((resource) => renderResourceOrLink(resource))}
+                    </div>
+                  )}
+
+                  {endOfModuleLessons.length > 0 && (
+                    <ul className="mt-4 flex flex-col gap-2">{endOfModuleLessons.map(renderLesson)}</ul>
+                  )}
+                </>
               )}
             </details>
           );

@@ -8,12 +8,78 @@ const FROM = process.env.EMAIL_FROM
   ? `Origen Digestivo <${process.env.EMAIL_FROM}>`
   : null;
 
-async function sendEmail(to: string, subject: string, text: string) {
+const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
+
+// Firma real de Sandra (mismo logo + datos + aviso legal/RGPD que usa ella
+// a mano desde Gmail — texto pasado literal por ella) — se añade a todos
+// los emails que le llegan a una paciente. `sendNotificationEmail` (los
+// avisos internos a la propia Sandra) la deja fuera explícitamente: no
+// tiene sentido firmarle un email a ella misma, y el aviso de RGPD es para
+// quien recibe sus datos tratados, no para la propia responsable.
+const SIGNATURE_HTML = `
+  <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e8e4dd;">
+    <img src="${APP_URL}/email-signature-logo.png" alt="Sandra Sempere · Dietista Integrativa" width="150" style="display:block;margin-bottom:14px;border:0;" />
+    <p style="margin:0;font-weight:bold;color:#2F3A35;">Sandra Sempere | CEO</p>
+    <p style="margin:0;color:#2F3A35;">Dietista Integrativa</p>
+    <p style="margin:8px 0 0;"><a href="mailto:info@sandrasempere.com" style="color:#8FA99B;text-decoration:none;">info@sandrasempere.com</a></p>
+    <p style="margin:0;"><a href="https://www.sandrasempere.com" style="color:#8FA99B;text-decoration:none;">https://www.sandrasempere.com</a></p>
+    <p style="margin:0;"><a href="tel:+34623992928" style="color:#8FA99B;text-decoration:none;">+34 623 99 29 28</a></p>
+    <p style="margin:0;color:#2F3A35;">Horario de atención: L-V de 9:00h a 19:00h</p>
+  </div>
+  <div style="margin-top:20px;font-size:11px;line-height:1.5;color:#8a8a8a;">
+    <p style="margin:0 0 8px;">Sea respetuoso con el medioambiente, no imprima este e-mail si no es necesario.</p>
+    <p style="margin:0 0 8px;"><strong>AVISO LEGAL:</strong> El contenido de este mensaje y sus archivos adjuntos es CONFIDENCIAL, siendo para uso exclusivo del destinatario arriba mencionado. Si usted lee este mensaje y no es el destinatario indicado, le informamos que está totalmente prohibida cualquier utilización, divulgación, distribución y/o reproducción de esta comunicación sin autorización expresa de SANDRA SEMPERE GUILABERT en virtud de la legislación vigente. Si ha recibido este mensaje por error o no es el destinatario final, por favor, le rogamos nos lo notifique inmediatamente por esta misma vía a <a href="mailto:alimentacionbysandra@gmail.com" style="color:#8a8a8a;">alimentacionbysandra@gmail.com</a> y proceda a su eliminación.</p>
+    <p style="margin:0;"><strong>PROTECCIÓN DE DATOS:</strong> De conformidad con lo dispuesto en el Reglamento (UE) 2016/679, de 27 de abril (GDPR), y la Ley Orgánica 3/2018, de 5 de diciembre (LOPDGDD), le informamos de que los datos personales y la dirección de correo electrónico del interesado, se tratarán bajo la responsabilidad de SANDRA SEMPERE GUILABERT por un interés legítimo y para el envío de comunicaciones sobre nuestros productos y servicios, y se conservarán mientras ninguna de las partes se oponga a ello. Los datos no se comunicarán a terceros, salvo obligación legal. Le informamos de que puede ejercer los derechos de acceso, rectificación, portabilidad y supresión de sus datos y los de limitación y oposición a su tratamiento dirigiéndose a Email: <a href="mailto:alimentacionbysandra@gmail.com" style="color:#8a8a8a;">alimentacionbysandra@gmail.com</a>. Si considera que el tratamiento no se ajusta a la normativa vigente, podrá presentar una reclamación ante la autoridad de control en <a href="https://www.aepd.es" style="color:#8a8a8a;">www.aepd.es</a>.</p>
+  </div>
+`;
+
+const SIGNATURE_TEXT = `
+
+--
+Sandra Sempere | CEO
+Dietista Integrativa
+info@sandrasempere.com
+https://www.sandrasempere.com
++34 623 99 29 28
+Horario de atención: L-V de 9:00h a 19:00h
+
+Sea respetuoso con el medioambiente, no imprima este e-mail si no es necesario.
+
+AVISO LEGAL: El contenido de este mensaje y sus archivos adjuntos es CONFIDENCIAL, siendo para uso exclusivo del destinatario arriba mencionado. Si usted lee este mensaje y no es el destinatario indicado, le informamos que está totalmente prohibida cualquier utilización, divulgación, distribución y/o reproducción de esta comunicación sin autorización expresa de SANDRA SEMPERE GUILABERT en virtud de la legislación vigente. Si ha recibido este mensaje por error o no es el destinatario final, por favor, le rogamos nos lo notifique inmediatamente por esta misma vía a alimentacionbysandra@gmail.com y proceda a su eliminación.
+
+PROTECCIÓN DE DATOS: De conformidad con lo dispuesto en el Reglamento (UE) 2016/679, de 27 de abril (GDPR), y la Ley Orgánica 3/2018, de 5 de diciembre (LOPDGDD), le informamos de que los datos personales y la dirección de correo electrónico del interesado, se tratarán bajo la responsabilidad de SANDRA SEMPERE GUILABERT por un interés legítimo y para el envío de comunicaciones sobre nuestros productos y servicios, y se conservarán mientras ninguna de las partes se oponga a ello. Los datos no se comunicarán a terceros, salvo obligación legal. Le informamos de que puede ejercer los derechos de acceso, rectificación, portabilidad y supresión de sus datos y los de limitación y oposición a su tratamiento dirigiéndose a Email: alimentacionbysandra@gmail.com. Si considera que el tratamiento no se ajusta a la normativa vigente, podrá presentar una reclamación ante la autoridad de control en www.aepd.es.`;
+
+function escapeHtml(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function linkifyUrls(escapedText: string) {
+  return escapedText.replace(
+    /(https?:\/\/[^\s<]+)/g,
+    (url) => `<a href="${url}" style="color:#8FA99B;">${url}</a>`,
+  );
+}
+
+// Convierte el texto plano de cada email (párrafos separados por línea en
+// blanco) al mismo contenido en HTML, para poder insertar la firma con
+// imagen — Resend no renderiza una foto dentro de un email de solo texto.
+function textToHtmlBody(text: string) {
+  return text
+    .split("\n\n")
+    .map((para) => `<p style="margin:0 0 16px;">${linkifyUrls(escapeHtml(para)).replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
+async function sendEmail(to: string, subject: string, text: string, opts: { signature?: boolean } = {}) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || !FROM) {
     console.warn("Email no configurado (falta RESEND_API_KEY/EMAIL_FROM) — no enviado:", subject);
     return;
   }
+
+  const withSignature = opts.signature ?? true;
+  const finalText = withSignature ? `${text}${SIGNATURE_TEXT}` : text;
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#2F3A35;max-width:560px;">${textToHtmlBody(text)}${withSignature ? SIGNATURE_HTML : ""}</div>`;
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -22,7 +88,7 @@ async function sendEmail(to: string, subject: string, text: string) {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from: FROM, to, subject, text }),
+      body: JSON.stringify({ from: FROM, to, subject, text: finalText, html }),
       // Sin esto, una respuesta que nunca llega de Resend deja la petición
       // colgada indefinidamente y bloquea con ella a quien esté esperando
       // este envío (p.ej. el cron de recordatorios, que manda uno a uno).
@@ -37,9 +103,10 @@ async function sendEmail(to: string, subject: string, text: string) {
 }
 
 // No lanza si falla el envío — un aviso por email que no llega no debe
-// impedir que se guarde el formulario de la paciente.
+// impedir que se guarde el formulario de la paciente. Sin firma: es un
+// aviso interno para la propia Sandra, no para una paciente.
 export async function sendNotificationEmail(subject: string, text: string) {
-  await sendEmail(process.env.EMAIL_TO ?? "", subject, text);
+  await sendEmail(process.env.EMAIL_TO ?? "", subject, text, { signature: false });
 }
 
 // Recordatorio a la propia paciente de que le toca rellenar su Formulario de

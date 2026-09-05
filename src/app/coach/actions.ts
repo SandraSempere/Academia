@@ -341,6 +341,7 @@ export async function uploadPatientPlanFile(formData: FormData) {
     const planStartDate = new Date();
     const revision4Date = atMidnight(addDays(planStartDate, 30));
     const revision8Date = atMidnight(addDays(planStartDate, 60));
+    const revision12Date = atMidnight(addDays(planStartDate, 90));
 
     await prisma.patientProfile.update({
       where: { id: profile.id },
@@ -354,6 +355,7 @@ export async function uploadPatientPlanFile(formData: FormData) {
       data: [
         { patientProfileId: profile.id, date: revision4Date, source: "revision4", notes: "Revisión semana 4" },
         { patientProfileId: profile.id, date: revision8Date, source: "revision8", notes: "Revisión semana 8" },
+        { patientProfileId: profile.id, date: revision12Date, source: "revision12", notes: "Revisión final semana 12" },
       ],
     });
 
@@ -466,6 +468,7 @@ export async function enableRenewal(formData: FormData) {
   const renewalPlanStartDate = new Date();
   const renewalRevision4Date = atMidnight(addDays(renewalPlanStartDate, 30));
   const renewalRevision8Date = atMidnight(addDays(renewalPlanStartDate, 60));
+  const renewalRevision12Date = atMidnight(addDays(renewalPlanStartDate, 90));
 
   await prisma.patientProfile.update({
     where: { id: profile.id },
@@ -485,6 +488,12 @@ export async function enableRenewal(formData: FormData) {
         date: renewalRevision8Date,
         source: "renewal_revision8",
         notes: "Revisión semana 8 · Renovación",
+      },
+      {
+        patientProfileId: profile.id,
+        date: renewalRevision12Date,
+        source: "renewal_revision12",
+        notes: "Revisión final semana 12 · Renovación",
       },
     ],
   });

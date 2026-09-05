@@ -23,6 +23,10 @@ async function sendEmail(to: string, subject: string, text: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ from: FROM, to, subject, text }),
+      // Sin esto, una respuesta que nunca llega de Resend deja la petición
+      // colgada indefinidamente y bloquea con ella a quien esté esperando
+      // este envío (p.ej. el cron de recordatorios, que manda uno a uno).
+      signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) {
       console.error("Error enviando email:", subject, "->", res.status, await res.text());
@@ -80,6 +84,31 @@ Nos vemos ahí 🌿
 Sandra`;
 
   await sendEmail(to, subject, text);
+}
+
+// Recordatorio a la paciente de su próxima cita de revisión (semana
+// 4/8/12, renovación o la final del mes extra) — mismo texto el día antes
+// y el mismo día (ya incluye la fecha y hora exactas, así que no hace
+// falta variar el mensaje según "cuándo", a diferencia del recordatorio de
+// formulario quincenal).
+export async function sendPatientAppointmentReminderEmail(to: string, name: string, date: Date) {
+  const dayLabel = date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+  const timeLabel = date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  const text = `¡Hola ${name}!
+
+Te escribo para recordarte tu cita de revisión:
+
+📅 Día: ${dayLabel}
+🕒 Hora: ${timeLabel}
+
+Nos vemos en la llamada. Se ruega confirmación a este mismo email.
+
+Si necesitas cambiarla o surge algún imprevisto, avísame con tiempo y lo movemos sin problema.
+
+¡Hasta pronto!
+Sandra`;
+
+  await sendEmail(to, "Recordatorio: tu cita de revisión 📅", text);
 }
 
 // Bienvenida a una paciente recién dada de alta, con su contraseña

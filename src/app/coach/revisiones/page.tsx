@@ -320,8 +320,10 @@ export default async function RevisionesPage() {
       <p className="text-xs text-foreground/50">
         &ldquo;Inicio plan&rdquo; se pone sola la primera vez que subes el
         &ldquo;Plan nutricional 1&rdquo; de cada paciente, en su ficha —
-        también crea sola las citas de las revisiones de semana 4 y 8 en tu
-        Agenda, a falta de que les pongas hora.
+        también crea sola las citas de las revisiones de semana 4, 8 y 12 en
+        tu Agenda, a falta de que les pongas hora. El día antes de cada cita
+        (y el mismo día a las 9:00h) le llega un recordatorio por email y
+        notificación.
       </p>
     </div>
   );

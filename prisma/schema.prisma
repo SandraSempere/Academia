@@ -435,7 +435,9 @@ model Appointment {
   title            String? // solo se usa cuando no hay paciente (con paciente, el título es su nombre)
   date             DateTime
   notes            String?
-  source           String? // "revision4" | "revision8" si la creó sola el calendario de Revisiones; null si la creó la coach a mano
+  source           String? // "revision4" | "revision8" | "revision12" (y sus equivalentes "renewal_..." / "extra_month_revision_final") si la creó sola el calendario de Revisiones; null si la creó la coach a mano
+  reminderSentAt          DateTime? // recordatorio del día exacto ya enviado (evita reenviarlo)
+  reminderSentDayBeforeAt DateTime? // recordatorio del día antes ya enviado (evita reenviarlo, aparte del anterior)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 

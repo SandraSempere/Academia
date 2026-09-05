@@ -34,7 +34,16 @@ export async function sendPushToPatient(
   await Promise.all(
     subscriptions.map(async (sub) => {
       try {
-        await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, body);
+        // Sin `timeout`, un endpoint de push que no responde (móvil
+        // apagado, red rara...) puede dejar el socket colgado varios
+        // minutos y bloquear con él a quien esté esperando este envío —
+        // pasó de verdad con el cron de recordatorios de citas. 10s es de
+        // sobra para un POST tan pequeño.
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          body,
+          { timeout: 10000 },
+        );
         delivered = true;
       } catch (err) {
         const statusCode = (err as { statusCode?: number }).statusCode;

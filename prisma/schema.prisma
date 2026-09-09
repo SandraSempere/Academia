@@ -61,6 +61,7 @@ model PatientProfile {
   phase      Int      @default(1) // Fase 1-4 del proceso, la ajusta la coach
   activatedAt     DateTime? // primera vez que la paciente entra y cambia su contraseña provisional — "se ha unido de verdad"
   activatedSeenAt DateTime? // la coach ya vio el aviso de "nueva paciente" en Inicio
+  termsAcceptedAt DateTime? // marcó la casilla de "He leído y acepto los términos y condiciones" en el login
 
   plan             PatientPlan?
   checklistItems   PatientChecklistItem[]
@@ -72,6 +73,7 @@ model PatientProfile {
   celebrationForm  CelebrationForm?
   closingForm      ClosingForm?
   planFiles        PatientPlanFile[]
+  medicalTests     MedicalTest[]
   eatingChecklist  EatingChecklist?
   ruleAuditForm    RuleAuditForm?
   commitmentForm   CommitmentForm?
@@ -120,6 +122,19 @@ model PatientPlanFile {
   updatedAt        DateTime       @updatedAt
 
   @@unique([patientProfileId, category, cycle, slot])
+}
+
+// Pruebas médicas (analíticas, ecografías...) que la propia paciente sube
+// desde el Formulario de síntomas, justo debajo de él. A diferencia de
+// PatientPlanFile (huecos fijos que sube la coach), aquí no hay slots: cada
+// subida crea una fila nueva y la lista solo crece.
+model MedicalTest {
+  id               String         @id @default(cuid())
+  patientProfileId String
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  fileName         String // nombre original del archivo tal y como lo subió la paciente
+  url              String
+  uploadedAt       DateTime       @default(now())
 }
 
 // Academia: Módulo > Lección (contenido compartido por todas las pacientes)

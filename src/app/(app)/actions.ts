@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { randomBytes } from "node:crypto";
+import { writeFile, mkdir } from "node:fs/promises";
+import path from "node:path";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PERSONAL_FIELDS, SECTIONS } from "@/lib/symptom-form-fields";
@@ -132,6 +135,63 @@ export async function saveSymptomForm(formData: FormData) {
       province: data.province,
     });
   }
+
+  revalidatePath("/formulario-sintomas");
+  revalidatePath("/coach");
+}
+
+const MEDICAL_TEST_ALLOWED_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+// "Adjunta aquí tus pruebas médicas" — debajo del Formulario de síntomas. A
+// diferencia de los formularios de una sola vez, esto no se bloquea nunca:
+// la paciente puede volver a subir más pruebas cuando quiera, cada subida se
+// añade a la lista sin sustituir a las anteriores. Admite varios archivos a
+// la vez (input `multiple`) o uno a uno, con el mismo formulario.
+export async function uploadMedicalTests(formData: FormData) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "PATIENT") {
+    throw new Error("No autorizado");
+  }
+
+  const profile = await prisma.patientProfile.findUnique({
+    where: { userId: session.user.id },
+    include: { user: true },
+  });
+  if (!profile) throw new Error("Perfil no encontrado");
+
+  const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) throw new Error("Selecciona al menos un archivo.");
+  for (const file of files) {
+    if (!MEDICAL_TEST_ALLOWED_TYPES.has(file.type)) {
+      throw new Error(`"${file.name}" no es un tipo de archivo permitido (PDF o foto).`);
+    }
+  }
+
+  const dir = path.join(process.cwd(), "public", "uploads", "pruebas-medicas");
+  await mkdir(dir, { recursive: true });
+
+  const created: { patientProfileId: string; fileName: string; url: string }[] = [];
+  for (const file of files) {
+    const ext = path.extname(file.name) || ".pdf";
+    const filename = `${profile.id}-${randomBytes(8).toString("hex")}${ext}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(path.join(dir, filename), buffer);
+    created.push({ patientProfileId: profile.id, fileName: file.name, url: `/uploads/pruebas-medicas/${filename}` });
+  }
+
+  await prisma.medicalTest.createMany({ data: created });
+
+  // Sin await, mismo motivo que el resto de avisos a la coach: no debe
+  // retrasar la respuesta de la subida.
+  sendNotificationEmail(
+    "🧪 Nuevas pruebas médicas",
+    `${profile.user.name ?? "Una paciente"} ha subido ${created.length} prueba${created.length === 1 ? "" : "s"} médica${created.length === 1 ? "" : "s"} nueva${created.length === 1 ? "" : "s"}.`,
+  );
 
   revalidatePath("/formulario-sintomas");
   revalidatePath("/coach");

@@ -172,6 +172,10 @@ export default async function PacienteDetailPage({
   const symptomForm = await prisma.symptomForm.findUnique({
     where: { patientProfileId: patient.patientProfile.id },
   });
+  const medicalTests = await prisma.medicalTest.findMany({
+    where: { patientProfileId: patient.patientProfile.id },
+    orderBy: { uploadedAt: "desc" },
+  });
   const quincenalForms = await prisma.quincenalForm.findMany({
     where: { patientProfileId: patient.patientProfile.id },
   });
@@ -225,6 +229,16 @@ export default async function PacienteDetailPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {patient.patientProfile.termsAcceptedAt ? (
+            <span className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs font-medium text-carbon">
+              ✅ Aceptó los términos el{" "}
+              {new Date(patient.patientProfile.termsAcceptedAt).toLocaleDateString("es-ES")}
+            </span>
+          ) : (
+            <span className="rounded-full bg-black/5 px-3 py-1.5 text-xs font-medium text-foreground/60">
+              ⏳ Aún no ha aceptado los términos
+            </span>
+          )}
           {patient.patientProfile.renewalEnabled ? (
             <span className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs font-medium text-carbon">
               ✅ Renovación activa desde{" "}
@@ -520,6 +534,33 @@ export default async function PacienteDetailPage({
               </form>
             </div>
           </details>
+        )}
+      </details>
+
+      <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+        <summary className="cursor-pointer font-semibold">
+          🧪 Pruebas médicas{" "}
+          <span className="font-normal text-foreground/60">
+            · {medicalTests.length > 0 ? `${medicalTests.length} archivo(s)` : "aún no ha subido ninguna"}
+          </span>
+        </summary>
+
+        {medicalTests.length > 0 && (
+          <div className="mt-4 flex flex-col gap-2">
+            {medicalTests.map((test) => (
+              <a
+                key={test.id}
+                href={test.url}
+                download={test.fileName}
+                className="flex items-center justify-between gap-2 rounded-xl bg-crema px-3 py-2 text-sm hover:bg-brand-primary-soft"
+              >
+                <span className="min-w-0 flex-1 truncate">📎 {test.fileName}</span>
+                <span className="shrink-0 text-xs text-foreground/50">
+                  {new Date(test.uploadedAt).toLocaleDateString("es-ES")}
+                </span>
+              </a>
+            ))}
+          </div>
         )}
       </details>
 

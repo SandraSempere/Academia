@@ -55,3 +55,7 @@ next-env.d.ts
 # content/recursos-seed/ + scripts/seed-recursos.ts) — este directorio lo
 # rellena solo ese script, tanto en local como en producción.
 /public/uploads/recursos/
+
+# Pruebas médicas que sube cada paciente — datos de salud privados, van al
+# volumen persistente en producción, nunca al repo.
+/public/uploads/pruebas-medicas/

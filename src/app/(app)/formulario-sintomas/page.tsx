@@ -2,6 +2,7 @@ import { getCurrentPatientProfile } from "@/lib/patient";
 import { prisma } from "@/lib/prisma";
 import { SymptomForm } from "@/components/symptom-form";
 import { SymptomFormSummary } from "@/components/symptom-form-summary";
+import { MedicalTestUpload } from "@/components/medical-test-upload";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,12 @@ export default async function FormularioSintomasPage() {
   const existing = profile
     ? await prisma.symptomForm.findUnique({ where: { patientProfileId: profile.id } })
     : null;
+  const medicalTests = profile
+    ? await prisma.medicalTest.findMany({
+        where: { patientProfileId: profile.id },
+        orderBy: { uploadedAt: "desc" },
+      })
+    : [];
 
   if (existing?.submittedAt) {
     return (
@@ -27,6 +34,7 @@ export default async function FormularioSintomasPage() {
           preparar tu primera consulta.
         </div>
         <SymptomFormSummary data={existing} />
+        <MedicalTestUpload tests={medicalTests} />
       </div>
     );
   }
@@ -43,6 +51,7 @@ export default async function FormularioSintomasPage() {
       </div>
 
       <SymptomForm data={existing} />
+      <MedicalTestUpload tests={medicalTests} />
     </div>
   );
 }

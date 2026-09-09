@@ -37,6 +37,16 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">
         {children}
       </main>
+      <footer className="border-t border-black/5 px-6 py-4 text-center">
+        <a
+          href="/terminos-y-condiciones.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-foreground/50 underline hover:text-brand-primary"
+        >
+          Términos y condiciones de uso
+        </a>
+      </footer>
     </div>
   );
 }

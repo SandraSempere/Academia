@@ -63,6 +63,27 @@ export async function changePassword(formData: FormData) {
   revalidatePath("/");
 }
 
+// El formulario de login no sabe quién va a entrar hasta que se envía, pero
+// solo queremos mostrar la casilla de términos y condiciones a una paciente
+// que todavía no los ha aceptado nunca (se marca en `authorize()`, ver
+// auth.ts). Se llama al salir del campo de email para decidir si hace falta
+// mostrarla. Por defecto (email vacío, no encontrado, o cualquier error) se
+// pide la casilla — es la opción segura, y de paso no revela gran cosa: un
+// email inexistente se comporta igual que uno que aún no ha aceptado.
+export async function checkTermsRequired(email: string): Promise<boolean> {
+  const trimmed = email.trim();
+  if (!trimmed) return true;
+
+  const user = await prisma.user.findUnique({
+    where: { email: trimmed },
+    include: { patientProfile: true },
+  });
+  if (!user) return true;
+  if (user.role === "COACH") return false;
+
+  return !user.patientProfile?.termsAcceptedAt;
+}
+
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
 
 // "¿Olvidaste tu contraseña?" — siempre responde con el mismo mensaje

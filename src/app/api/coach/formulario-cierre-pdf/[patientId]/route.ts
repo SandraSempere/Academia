@@ -12,6 +12,7 @@ import {
   MARGIN,
   CONTENT_WIDTH,
   wrapText,
+  sanitizeForPdf,
 } from "@/lib/pdf-generation";
 
 export async function GET(
@@ -56,7 +57,7 @@ export async function GET(
     font: boldFont,
     color: rgb(1, 1, 1),
   });
-  page.drawText(patient!.name ?? "", {
+  page.drawText(sanitizeForPdf(patient!.name ?? ""), {
     x: MARGIN,
     y: PAGE_HEIGHT - 84,
     size: 11,
@@ -75,8 +76,8 @@ export async function GET(
     const value = (closingForm[field.id] as string | null) ?? "";
     if (!value.trim()) continue;
 
-    const questionLines = wrapText(field.label, boldFont, 12, CONTENT_WIDTH);
-    const answerLines = wrapText(value, bodyFont, 11, CONTENT_WIDTH);
+    const questionLines = wrapText(sanitizeForPdf(field.label), boldFont, 12, CONTENT_WIDTH);
+    const answerLines = wrapText(sanitizeForPdf(value), bodyFont, 11, CONTENT_WIDTH);
     const blockHeight = questionLines.length * 16 + answerLines.length * 15 + 24;
 
     newPageIfNeeded(blockHeight);
@@ -97,7 +98,7 @@ export async function GET(
     newPageIfNeeded(50);
     page.drawText("Uso del testimonio", { x: MARGIN, y, size: 12, font: boldFont, color: BRAND_TERRACOTA });
     y -= 16;
-    page.drawText(closingForm.testimonialConsent, { x: MARGIN, y, size: 11, font: bodyFont, color: BRAND_CARBON });
+    page.drawText(sanitizeForPdf(closingForm.testimonialConsent), { x: MARGIN, y, size: 11, font: bodyFont, color: BRAND_CARBON });
     y -= 20;
   }
 

@@ -11,6 +11,7 @@ import {
   MARGIN,
   CONTENT_WIDTH,
   wrapText,
+  sanitizeForPdf,
 } from "@/lib/pdf-generation";
 
 export async function GET(
@@ -55,7 +56,7 @@ export async function GET(
     font: boldFont,
     color: rgb(1, 1, 1),
   });
-  page.drawText(patient.name ?? "", {
+  page.drawText(sanitizeForPdf(patient.name ?? ""), {
     x: MARGIN,
     y: PAGE_HEIGHT - 84,
     size: 11,
@@ -76,7 +77,7 @@ export async function GET(
       month: "long",
       year: "numeric",
     });
-    const textLines = wrapText(note.text, bodyFont, 11, CONTENT_WIDTH);
+    const textLines = wrapText(sanitizeForPdf(note.text), bodyFont, 11, CONTENT_WIDTH);
     const blockHeight = 16 + textLines.length * 15 + 20;
 
     newPageIfNeeded(blockHeight);

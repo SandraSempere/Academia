@@ -296,6 +296,13 @@ export default async function HomePage() {
                   />
                 ),
               )}
+              <Link
+                href="/pruebas-medicas"
+                className="flex items-center justify-between rounded-2xl bg-brand-primary px-4 py-3 text-sm font-medium text-white hover:opacity-90"
+              >
+                Adjunta aquí tus pruebas médicas
+                <span>Subir →</span>
+              </Link>
             </div>
           )}
         </section>

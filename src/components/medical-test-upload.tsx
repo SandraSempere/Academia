@@ -15,13 +15,10 @@ export function MedicalTestUpload({ tests }: { tests: MedicalTestData[] }) {
 
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-black/5 bg-blanco-roto p-5">
-      <div>
-        <h2 className="font-semibold">Adjunta aquí tus pruebas médicas</h2>
-        <p className="mt-1 text-xs text-foreground/60">
-          Analíticas, ecografías u otras pruebas que tengas. Puedes subir
-          varios archivos a la vez o uno a uno (PDF o foto).
-        </p>
-      </div>
+      <p className="text-xs text-foreground/60">
+        Analíticas, ecografías u otras pruebas que tengas. Puedes subir varios
+        archivos a la vez o uno a uno (PDF o foto).
+      </p>
 
       <form
         ref={formRef}

@@ -278,14 +278,22 @@ export default async function HomePage() {
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {bienvenida.resources.map((resource) =>
                 resource.title === "Formulario de síntomas" ? (
-                  <Link
-                    key={resource.id}
-                    href="/formulario-sintomas"
-                    className="flex items-center justify-between rounded-2xl bg-brand-primary px-4 py-3 text-sm font-medium text-white hover:opacity-90"
-                  >
-                    {resource.title}
-                    <span>Rellenar →</span>
-                  </Link>
+                  <Fragment key={resource.id}>
+                    <Link
+                      href="/formulario-sintomas"
+                      className="flex items-center justify-between rounded-2xl bg-brand-primary px-4 py-3 text-sm font-medium text-white hover:opacity-90"
+                    >
+                      {resource.title}
+                      <span>Rellenar →</span>
+                    </Link>
+                    <Link
+                      href="/pruebas-medicas"
+                      className="flex items-center justify-between rounded-2xl bg-brand-primary px-4 py-3 text-sm font-medium text-white hover:opacity-90"
+                    >
+                      Adjunta aquí tus pruebas médicas
+                      <span>Subir →</span>
+                    </Link>
+                  </Fragment>
                 ) : (
                   <ResourceCard
                     key={resource.id}
@@ -296,13 +304,6 @@ export default async function HomePage() {
                   />
                 ),
               )}
-              <Link
-                href="/pruebas-medicas"
-                className="flex items-center justify-between rounded-2xl bg-brand-primary px-4 py-3 text-sm font-medium text-white hover:opacity-90"
-              >
-                Adjunta aquí tus pruebas médicas
-                <span>Subir →</span>
-              </Link>
             </div>
           )}
         </section>

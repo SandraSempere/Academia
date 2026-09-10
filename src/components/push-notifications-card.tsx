@@ -35,6 +35,22 @@ export function PushNotificationsCard() {
       try {
         const registration = await navigator.serviceWorker.register("/sw.js");
         const existing = await registration.pushManager.getSubscription();
+        if (existing) {
+          // El navegador puede tener una suscripción "activa" que el
+          // servidor nunca llegó a guardar (p.ej. si `savePushSubscription`
+          // falló justo al activarlas la primera vez, por una mala conexión
+          // puntual) — la tarjeta desaparecería igualmente y nadie se
+          // enteraría de que en realidad no le llega nada. Reenviarla aquí,
+          // en cada visita, es barato (upsert por endpoint, no duplica) y
+          // se autorepara sola sin que la paciente tenga que hacer nada.
+          const json = existing.toJSON();
+          if (json.endpoint && json.keys?.p256dh && json.keys?.auth) {
+            await savePushSubscription({
+              endpoint: json.endpoint,
+              keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
+            }).catch(() => {});
+          }
+        }
         if (!cancelled) setStatus(existing ? "subscribed" : "unsubscribed");
       } catch {
         if (!cancelled) setStatus("unsupported");

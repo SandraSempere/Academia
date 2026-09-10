@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { createAppointment, deleteAppointment, updateAppointment } from "@/app/coach/actions";
+import { createAppointment, deleteAppointment, updateAppointment, resendAppointmentReminderTest } from "@/app/coach/actions";
 import { computeCheckpoints, computeExtraMonthCheckpoints, isTimeTbd } from "@/lib/revisiones";
 
 export const dynamic = "force-dynamic";
@@ -283,6 +283,17 @@ export default async function AgendaPage({
                               Guardar
                             </button>
                           </form>
+                          {appt.source && (
+                            <form action={resendAppointmentReminderTest} className="mt-1">
+                              <input type="hidden" name="appointmentId" value={appt.id} />
+                              <button
+                                type="submit"
+                                className="self-start text-[10px] font-medium text-foreground/50 underline hover:text-brand-primary"
+                              >
+                                🔁 Reenviar recordatorio (prueba)
+                              </button>
+                            </form>
+                          )}
                         </details>
                       </div>
                     );

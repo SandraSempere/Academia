@@ -26,7 +26,10 @@ export async function sendPushToPatient(
   }
 
   const subscriptions = await prisma.pushSubscription.findMany({ where: { patientProfileId } });
-  if (subscriptions.length === 0) return false;
+  if (subscriptions.length === 0) {
+    console.log(`[push] paciente=${patientProfileId} sin suscripciones registradas — no se manda nada.`);
+    return false;
+  }
 
   const body = JSON.stringify(payload);
   let delivered = false;
@@ -45,15 +48,21 @@ export async function sendPushToPatient(
           { timeout: 10000 },
         );
         delivered = true;
+        console.log(`[push] paciente=${patientProfileId} suscripcion=${sub.id} entregado OK.`);
       } catch (err) {
         const statusCode = (err as { statusCode?: number }).statusCode;
         if (statusCode === 404 || statusCode === 410) {
           // Suscripción caducada o revocada (desinstaló la app, borró
           // datos del navegador...) — se limpia sola, no hace falta que
-          // nadie la borre a mano.
+          // nadie la borre a mano. Antes esto pasaba en silencio, sin
+          // ninguna línea de log — costó mucho diagnosticar un caso real
+          // en el que el push del recordatorio de cita no llegaba.
+          console.log(
+            `[push] paciente=${patientProfileId} suscripcion=${sub.id} caducada (status ${statusCode}) — borrada.`,
+          );
           await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
         } else {
-          console.error("Error enviando notificación push:", err);
+          console.error(`[push] paciente=${patientProfileId} suscripcion=${sub.id} error:`, err);
         }
       }
     }),

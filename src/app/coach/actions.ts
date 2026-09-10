@@ -12,6 +12,7 @@ import { addDays, atMidnight, computeExtraMonthCheckpoints } from "@/lib/revisio
 import { sendWelcomeEmail, sendPlanNutricionalEmail, sendQuincenalVideoEmail } from "@/lib/email";
 import { sendPushToPatient } from "@/lib/push";
 import { notifyPatient } from "@/lib/notify";
+import { sendAppointmentReminderNow } from "@/lib/appointment-reminder";
 
 async function requireCoach() {
   const session = await auth();
@@ -75,6 +76,23 @@ export async function sendTestPush(formData: FormData) {
     body: "Si ves esto, las notificaciones están funcionando.",
     url: "/",
   });
+}
+
+// Botón de un solo uso para reenviar el recordatorio de UNA cita de
+// revisión concreta ahora mismo (mismo texto de email y push que mandaría
+// el cron diario), sin esperar a que vuelva a tocarle el día antes/día
+// exacto — pensado para depurar en caliente si alguna vez el email llega
+// pero el push no (o al revés). El resultado (si el push se entregó o no)
+// se queda en los logs del servidor, no hay una forma de devolverlo a la
+// pantalla desde una server action de formulario simple.
+export async function resendAppointmentReminderTest(formData: FormData) {
+  await requireCoach();
+
+  const appointmentId = String(formData.get("appointmentId") ?? "");
+  const { pushDelivered } = await sendAppointmentReminderNow(appointmentId);
+  console.log(`[resendAppointmentReminderTest] cita=${appointmentId} pushDelivered=${pushDelivered}`);
+
+  revalidatePath("/coach/agenda");
 }
 
 // Nombre de pila en minúsculas, sin acentos ni espacios, + "1234" —

@@ -6,10 +6,13 @@
 // puede olvidar, así que el email es quien de verdad no falla.
 import { sendPushToPatient } from "@/lib/push";
 
+// Devuelve si el push se entregó (útil para depurar en caliente desde el
+// panel de coach) — quien no lo necesite puede simplemente ignorarlo.
 export async function notifyPatient(
   patientProfileId: string,
   push: { title: string; body: string; url?: string },
   sendEmail: () => Promise<void>,
-) {
-  await Promise.all([sendPushToPatient(patientProfileId, push), sendEmail()]);
+): Promise<{ pushDelivered: boolean }> {
+  const [pushDelivered] = await Promise.all([sendPushToPatient(patientProfileId, push), sendEmail()]);
+  return { pushDelivered };
 }

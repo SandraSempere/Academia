@@ -89,22 +89,32 @@ function QuincenalSection({
         {weeks.map((week) => {
           const form = forms.find((f) => f.week === week);
           if (!form?.submittedAt) return null;
-          return form.reviewedAt ? (
-            <span key={week} className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs">
-              ✓ Semana {week} revisada · {new Date(form.reviewedAt).toLocaleDateString("es-ES")}
-            </span>
-          ) : (
-            <form key={week} action={markQuincenalReviewed}>
-              <input type="hidden" name="userId" value={patientId} />
-              <input type="hidden" name="week" value={week} />
-              <input type="hidden" name="cycle" value={cycle} />
-              <button
-                type="submit"
-                className="rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+          return (
+            <div key={week} className="flex items-center gap-2">
+              {form.reviewedAt ? (
+                <span className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs">
+                  ✓ Semana {week} revisada · {new Date(form.reviewedAt).toLocaleDateString("es-ES")}
+                </span>
+              ) : (
+                <form action={markQuincenalReviewed}>
+                  <input type="hidden" name="userId" value={patientId} />
+                  <input type="hidden" name="week" value={week} />
+                  <input type="hidden" name="cycle" value={cycle} />
+                  <button
+                    type="submit"
+                    className="rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+                  >
+                    Marcar semana {week} como revisada
+                  </button>
+                </form>
+              )}
+              <a
+                href={`/api/coach/revision-quincenal-pdf/${patientId}/${cycle}/${week}`}
+                className="text-xs font-medium text-brand-primary underline"
               >
-                Marcar semana {week} como revisada
-              </button>
-            </form>
+                ⬇️ PDF
+              </a>
+            </div>
           );
         })}
       </div>

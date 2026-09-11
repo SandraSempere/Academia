@@ -111,6 +111,15 @@ export default async function SesionesPage() {
       />
 
       <PlanFilesSection
+        title="💉 Propuesta de analíticas"
+        slotLabel="Propuesta"
+        slotCount={planFileSlotCount}
+        category="analiticas"
+        planFileByKey={planFileByKey}
+        hideEmptySlots
+      />
+
+      <PlanFilesSection
         title="🍳 Recetas"
         slotLabel="Receta"
         slotCount={planFileSlotCount}
@@ -145,6 +154,15 @@ export default async function SesionesPage() {
             title="💊 Suplementación · Renovación"
             slotLabel="Suplementación"
             category="suplementacion"
+            cycle={2}
+            planFileByKey={planFileByKey}
+            hideEmptySlots
+          />
+
+          <PlanFilesSection
+            title="💉 Propuesta de analíticas · Renovación"
+            slotLabel="Propuesta"
+            category="analiticas"
             cycle={2}
             planFileByKey={planFileByKey}
             hideEmptySlots

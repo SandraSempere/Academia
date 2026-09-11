@@ -34,6 +34,7 @@ const PLAN_FILE_SECTIONS = [
   { category: "accion", title: "Plan de acción", emoji: "🗓️" },
   { category: "nutricional", title: "Plan nutricional", emoji: "🍽️" },
   { category: "suplementacion", title: "Suplementación", emoji: "💊" },
+  { category: "analiticas", title: "Propuesta de analíticas", slotLabel: "Propuesta", emoji: "💉" },
   { category: "recetas", title: "Receta", emoji: "🍳" },
 ];
 
@@ -675,7 +676,7 @@ export default async function PacienteDetailPage({
                   userId={patient.id}
                   category={section.category}
                   slot={slot}
-                  label={`${section.title} ${slot}`}
+                  label={`${section.slotLabel ?? section.title} ${slot}`}
                   currentUrl={planFileByKey.get(`${section.category}-1-${slot}`)?.url}
                   videoUrl={
                     section.category === "nutricional"
@@ -728,7 +729,7 @@ export default async function PacienteDetailPage({
                     category={section.category}
                     slot={slot}
                     cycle={2}
-                    label={`${section.title} ${slot}`}
+                    label={`${section.slotLabel ?? section.title} ${slot}`}
                     currentUrl={planFileByKey.get(`${section.category}-2-${slot}`)?.url}
                     videoUrl={
                       section.category === "nutricional"

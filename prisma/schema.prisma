@@ -105,16 +105,17 @@ model PatientPlan {
 }
 
 // PDFs personalizados por paciente que sube la coach: 4 huecos por categoría
-// (Plan de acción, Plan nutricional, Suplementación, Recetas), y 4 huecos con
-// nombre propio para "Fase de reintroducción" (1º/2º/3º introducción,
-// Registro de síntomas) — esa fase se desbloquea sola en cuanto existe el
-// primero de los cuatro, ya no la desbloquea la coach a mano.
-// Sustituye al texto libre que tenía antes PatientPlan para estos primeros.
+// (Plan de acción, Plan nutricional, Suplementación, Recetas, Propuesta de
+// analíticas), y 4 huecos con nombre propio para "Fase de reintroducción"
+// (1º/2º/3º introducción, Registro de síntomas) — esa fase se desbloquea
+// sola en cuanto existe el primero de los cuatro, ya no la desbloquea la
+// coach a mano. Sustituye al texto libre que tenía antes PatientPlan para
+// estos primeros.
 model PatientPlanFile {
   id               String         @id @default(cuid())
   patientProfileId String
   patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
-  category         String // "accion" | "nutricional" | "suplementacion" | "recetas" | "reintroduccion"
+  category         String // "accion" | "nutricional" | "suplementacion" | "recetas" | "analiticas" | "reintroduccion"
   cycle            Int            @default(1) // 1 = programa original, 2 = renovación (solo accion/nutricional/suplementacion)
   slot             Int // 1-4, o 5 para el mes extra (solo cycle 1, categorías accion/nutricional/suplementacion/recetas)
   url              String?

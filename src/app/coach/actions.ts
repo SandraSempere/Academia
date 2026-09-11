@@ -296,7 +296,7 @@ export async function markPatientActivationSeen(formData: FormData) {
   revalidatePath("/coach");
 }
 
-const PLAN_FILE_CATEGORIES = ["accion", "nutricional", "suplementacion", "recetas", "reintroduccion"];
+const PLAN_FILE_CATEGORIES = ["accion", "nutricional", "suplementacion", "recetas", "analiticas", "reintroduccion"];
 
 export async function uploadPatientPlanFile(formData: FormData) {
   await requireCoach();

@@ -7,7 +7,7 @@ import { LeafAccent } from "@/components/leaf-accent";
 import { IntakeScreeningForm } from "@/components/intake-screening-form";
 import { PushNotificationsCard } from "@/components/push-notifications-card";
 import { ResourceCard } from "@/components/resource-card";
-import { formularioReminder } from "@/lib/revisiones";
+import { formularioBannerStatus, extraMonthFormularioBannerStatus } from "@/lib/revisiones";
 
 export const dynamic = "force-dynamic";
 
@@ -73,22 +73,32 @@ export default async function HomePage() {
     bienvenida?.lessons.findIndex((lesson) => lesson.title.startsWith("Léeme primero")) ?? -1;
 
   const today = new Date();
-  const dueCycle1 = profile?.planStartDate
-    ? formularioReminder(profile.planStartDate, profile.revision4Date, profile.revision8Date, today)
-    : null;
-  const dueCycle2 =
-    profile?.renewalEnabled && profile.renewalPlanStartDate
-      ? formularioReminder(profile.renewalPlanStartDate, profile.renewalRevision4Date, profile.renewalRevision8Date, today)
-      : null;
-
   const isSubmitted = (cycle: number, week: number) =>
     quincenalForms.some((f) => f.cycle === cycle && f.week === week && f.submittedAt);
 
-  const dueFormulario =
-    dueCycle1 && !isSubmitted(1, dueCycle1.week)
-      ? { ...dueCycle1, cycle: 1 }
-      : dueCycle2 && !isSubmitted(2, dueCycle2.week)
-        ? { ...dueCycle2, cycle: 2 }
+  const dueCycle1 = profile?.planStartDate
+    ? formularioBannerStatus(profile.planStartDate, profile.revision4Date, profile.revision8Date, (week) => isSubmitted(1, week), today)
+    : null;
+  const dueCycle2 =
+    profile?.renewalEnabled && profile.renewalPlanStartDate
+      ? formularioBannerStatus(
+          profile.renewalPlanStartDate,
+          profile.renewalRevision4Date,
+          profile.renewalRevision8Date,
+          (week) => isSubmitted(2, week),
+          today,
+        )
+      : null;
+  const dueExtraMonth = profile?.extraMonthEnabled
+    ? extraMonthFormularioBannerStatus(profile.extraMonthStartDate, isSubmitted(1, 14), today)
+    : null;
+
+  const dueFormulario = dueCycle1
+    ? { ...dueCycle1, cycle: 1 as const }
+    : dueCycle2
+      ? { ...dueCycle2, cycle: 2 as const }
+      : dueExtraMonth
+        ? { ...dueExtraMonth, cycle: 1 as const }
         : null;
   const showFormularioReminder = !!dueFormulario;
 
@@ -134,7 +144,13 @@ export default async function HomePage() {
           className="flex items-center justify-between rounded-2xl bg-brand-primary px-5 py-4 text-sm font-medium text-white hover:opacity-90"
         >
           <span>
-            📋 {dueFormulario.when === "hoy" ? "Hoy" : "Mañana"} toca tu {dueFormulario.label.toLowerCase()}
+            📋{" "}
+            {dueFormulario.when === "hoy"
+              ? "Hoy toca"
+              : dueFormulario.when === "mañana"
+                ? "Mañana toca"
+                : "Tienes pendiente"}{" "}
+            tu {dueFormulario.label.toLowerCase()}
             {dueFormulario.cycle === 2 ? " · Renovación" : ""}
           </span>
           <span>Rellenar →</span>

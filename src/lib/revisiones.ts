@@ -101,6 +101,56 @@ export function formularioReminder(
   return null;
 }
 
+// Estado del formulario para el banner de la propia Home de la paciente —
+// a diferencia de `formularioReminder` (solo "hoy"/"mañana", usado también
+// para decidir cuándo mandar el email/push, no se puede tocar sin afectar
+// a eso) esta versión sigue avisando aunque ya se haya pasado la fecha
+// ("atrasado"), hasta que lo rellene. Devuelve el primer formulario
+// pendiente en orden cronológico (semana 2 antes que 6, etc.) — si el más
+// antiguo está atrasado, se avisa de ese antes que de uno posterior aunque
+// ese sí caiga hoy/mañana.
+export function formularioBannerStatus(
+  planStartDate: Date,
+  revision4Date: Date | null,
+  revision8Date: Date | null,
+  isSubmitted: (week: 2 | 6 | 10) => boolean,
+  today: Date,
+): { label: string; week: 2 | 6 | 10; date: Date; when: "hoy" | "mañana" | "atrasado" } | null {
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const checkpoints = computeCheckpoints(planStartDate, revision4Date, revision8Date).filter(
+    (c) => "formWeek" in c,
+  );
+
+  for (const checkpoint of checkpoints) {
+    const week = checkpoint.formWeek!;
+    if (isSubmitted(week)) continue;
+    // Todavía no toca (ni siquiera mañana) — como están en orden
+    // cronológico, los siguientes tampoco tocarán.
+    if (atMidnight(checkpoint.date).getTime() > atMidnight(tomorrow).getTime()) return null;
+    const when = isSameDay(checkpoint.date, today) ? "hoy" : isSameDay(checkpoint.date, tomorrow) ? "mañana" : "atrasado";
+    return { label: checkpoint.label, week, date: checkpoint.date, when };
+  }
+  return null;
+}
+
+// Misma idea que `formularioBannerStatus` pero para el mes extra (semana
+// 14, un único hito).
+export function extraMonthFormularioBannerStatus(
+  extraMonthStartDate: Date | null,
+  isSubmitted: boolean,
+  today: Date,
+): { label: string; week: 14; date: Date; when: "hoy" | "mañana" | "atrasado" } | null {
+  if (!extraMonthStartDate || isSubmitted) return null;
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const [{ label, date, formWeek }] = computeExtraMonthCheckpoints(extraMonthStartDate);
+
+  if (atMidnight(date).getTime() > atMidnight(tomorrow).getTime()) return null;
+  const when = isSameDay(date, today) ? "hoy" : isSameDay(date, tomorrow) ? "mañana" : "atrasado";
+  return { label, week: formWeek!, date, when };
+}
+
 // Ya ha llegado (o pasado) la fecha del Formulario semana 2/6/10 y todavía
 // no lo ha rellenado — usado en Inicio de la coach para no mostrar un
 // formulario como "pendiente" antes de que le toque de verdad.

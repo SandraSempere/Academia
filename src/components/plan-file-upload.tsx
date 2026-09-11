@@ -28,7 +28,20 @@ export function PlanFileUploadRow({
         <input type="hidden" name="slot" value={slot} />
         <input type="hidden" name="cycle" value={cycle} />
         <p className="text-xs font-medium">
-          {label} {currentUrl && <span className="text-brand-tertiary">· subido</span>}
+          {label}{" "}
+          {currentUrl && (
+            <>
+              <span className="text-brand-tertiary">· subido</span>{" "}
+              <a
+                href={currentUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-primary underline"
+              >
+                👁️ Ver archivo
+              </a>
+            </>
+          )}
         </p>
         <div className="flex items-center gap-2">
           <input

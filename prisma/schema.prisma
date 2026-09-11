@@ -120,6 +120,7 @@ model PatientPlanFile {
   slot             Int // 1-4, o 5 para el mes extra (solo cycle 1, categorías accion/nutricional/suplementacion/recetas)
   url              String?
   videoUrl         String? // vídeo (Loom) de la coach explicando este documento — de momento solo se usa/muestra para category "nutricional"
+  pendingEmailAt   DateTime? // se pone al subir/reemplazar el archivo (categorías del email combinado, ver DIGEST_PLAN_FILE_CATEGORIES) — el cron de plan-file-digest lo manda pasado un rato sin nuevas subidas y lo vuelve a poner a null
   updatedAt        DateTime       @updatedAt
 
   @@unique([patientProfileId, category, cycle, slot])

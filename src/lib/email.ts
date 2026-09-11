@@ -216,14 +216,21 @@ export async function sendPasswordResetEmail(to: string, name: string, resetUrl:
   await sendEmail(to, "Restablecer tu contraseña", text);
 }
 
-// Aviso (siempre, además de la notificación push si la tiene activada) de
-// que Sandra le ha subido un Plan nutricional nuevo.
-export async function sendPlanNutricionalEmail(to: string, name: string) {
+// Aviso combinado (siempre, además de la notificación push individual por
+// cada documento si la tiene activada) de que Sandra le ha subido uno o
+// varios documentos de plan — plan de acción, plan nutricional,
+// suplementación, analítica y/o recetas. Uno solo, con lo que aplique, en
+// vez de un email por cada archivo (ver DIGEST_PLAN_FILE_CATEGORIES y el
+// cron /api/cron/plan-file-digest, que es quien decide cuándo mandarlo).
+export async function sendPlanFilesDigestEmail(to: string, name: string, items: string[]) {
+  const list = items.map((line) => `${line}`).join("\n");
   const text = `¡Hola ${name}!
 
-Ya tienes tu plan nutricional personalizado disponible en tu espacio de Origen Digestivo.
+Ya tienes disponible en tu espacio de Origen Digestivo:
 
-He preparado cada parte pensando en tu caso concreto — te recomiendo leerlo con calma antes de empezar a aplicarlo, para que entiendas el porqué de cada cosa y no solo el qué.
+${list}
+
+He preparado cada parte pensando en tu caso concreto — te recomiendo leerlo todo con calma antes de empezar a aplicarlo, para que entiendas el porqué de cada cosa y no solo el qué.
 
 Entra en tu espacio cuando puedas para verlo.
 
@@ -231,7 +238,25 @@ Cualquier duda que te surja, aquí estoy.
 
 Un abrazo,
 Sandra`;
-  await sendEmail(to, "Tu plan nutricional ya está listo 🌿", text);
+  await sendEmail(to, "Ya tienes tu plan disponible 🌿", text);
+}
+
+// Aviso individual (a diferencia del combinado de arriba) de un documento
+// nuevo de la fase de reintroducción — se manda al momento, sin agrupar,
+// porque cada uno llega en un momento muy distinto del programa (según
+// avanza esa fase), no tiene sentido esperar a juntar varios.
+export async function sendReintroductionDocEmail(to: string, name: string) {
+  const text = `¡Hola ${name}!
+
+Ya tienes disponible un nuevo documento de tu fase de reintroducción en tu espacio de Origen Digestivo.
+
+Entra en tu espacio cuando puedas para verlo.
+
+Cualquier duda que te surja, aquí estoy.
+
+Un abrazo,
+Sandra`;
+  await sendEmail(to, "Nuevo documento de tu fase de reintroducción 🔓", text);
 }
 
 // Aviso (siempre, además de la notificación push si la tiene activada) de

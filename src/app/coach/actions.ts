@@ -9,10 +9,11 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
 import { addDays, atMidnight, computeExtraMonthCheckpoints } from "@/lib/revisiones";
-import { sendWelcomeEmail, sendPlanNutricionalEmail, sendQuincenalVideoEmail } from "@/lib/email";
+import { sendWelcomeEmail, sendQuincenalVideoEmail, sendReintroductionDocEmail } from "@/lib/email";
 import { sendPushToPatient } from "@/lib/push";
 import { notifyPatient } from "@/lib/notify";
 import { sendAppointmentReminderNow } from "@/lib/appointment-reminder";
+import { PLAN_FILE_CATEGORIES, DIGEST_PLAN_FILE_CATEGORIES, PLAN_FILE_CATEGORY_INFO } from "@/lib/plan-file-categories";
 
 async function requireCoach() {
   const session = await auth();
@@ -296,8 +297,6 @@ export async function markPatientActivationSeen(formData: FormData) {
   revalidatePath("/coach");
 }
 
-const PLAN_FILE_CATEGORIES = ["accion", "nutricional", "suplementacion", "recetas", "analiticas", "reintroduccion"];
-
 export async function uploadPatientPlanFile(formData: FormData) {
   await requireCoach();
 
@@ -333,20 +332,34 @@ export async function uploadPatientPlanFile(formData: FormData) {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(dir, filename), buffer);
 
+  // Push al momento (una por documento, siempre) para las categorías del
+  // email combinado — el email en sí se retrasa (ver más abajo) para no
+  // mandar 4-5 emails seguidos si subes varios documentos de golpe.
+  // Reintroducción es la excepción: manda push Y email al momento, sin
+  // agrupar (sus documentos llegan muy espaciados en el tiempo, ver
+  // DIGEST_PLAN_FILE_CATEGORIES en src/lib/plan-file-categories.ts).
+  const info = PLAN_FILE_CATEGORY_INFO[category];
+  const isDigestCategory = DIGEST_PLAN_FILE_CATEGORIES.includes(category);
+
   await prisma.patientPlanFile.upsert({
     where: { patientProfileId_category_cycle_slot: { patientProfileId: profile.id, category, cycle, slot } },
-    create: { patientProfileId: profile.id, category, cycle, slot, url: `/uploads/planes/${filename}` },
-    update: { url: `/uploads/planes/${filename}` },
+    create: {
+      patientProfileId: profile.id,
+      category,
+      cycle,
+      slot,
+      url: `/uploads/planes/${filename}`,
+      pendingEmailAt: isDigestCategory ? new Date() : null,
+    },
+    update: { url: `/uploads/planes/${filename}`, pendingEmailAt: isDigestCategory ? new Date() : undefined },
   });
 
-  // Avisa a la paciente de que hay un plan nutricional nuevo — email
-  // siempre, más push si está suscrita. Sin await: no debe retrasar la
-  // respuesta de la subida del archivo.
-  if (category === "nutricional") {
-    notifyPatient(
-      profile.id,
-      { title: "🍽️ Nuevo plan nutricional", body: "Sandra te ha subido tu plan nutricional.", url: "/sesiones" },
-      () => sendPlanNutricionalEmail(profile.user.email, profile.user.name ?? ""),
+  // Sin await: no debe retrasar la respuesta de la subida del archivo.
+  if (isDigestCategory) {
+    sendPushToPatient(profile.id, { title: info.pushTitle, body: info.pushBody, url: "/sesiones" });
+  } else if (category === "reintroduccion") {
+    notifyPatient(profile.id, { title: info.pushTitle, body: info.pushBody, url: "/sesiones" }, () =>
+      sendReintroductionDocEmail(profile.user.email, profile.user.name ?? ""),
     );
   }
 

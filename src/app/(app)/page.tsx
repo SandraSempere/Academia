@@ -104,6 +104,25 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-10">
+      {showFormularioReminder && dueFormulario && (
+        <Link
+          href={`/revision-quincenal/${dueFormulario.week}${dueFormulario.cycle === 2 ? "?cycle=2" : ""}`}
+          className="flex items-center justify-between rounded-2xl bg-brand-primary px-5 py-4 text-sm font-medium text-white hover:opacity-90"
+        >
+          <span>
+            📋{" "}
+            {dueFormulario.when === "hoy"
+              ? "Hoy toca"
+              : dueFormulario.when === "mañana"
+                ? "Mañana toca"
+                : "Tienes pendiente"}{" "}
+            tu {dueFormulario.label.toLowerCase()}
+            {dueFormulario.cycle === 2 ? " · Renovación" : ""}
+          </span>
+          <span>Rellenar →</span>
+        </Link>
+      )}
+
       <section className="relative overflow-hidden rounded-3xl bg-brand-primary-soft">
         <div className="grid items-center gap-6 p-8 sm:grid-cols-2">
           <div>
@@ -137,25 +156,6 @@ export default async function HomePage() {
         </div>
         <LeafAccent className="pointer-events-none absolute -bottom-6 -left-6 h-28 w-28" />
       </section>
-
-      {showFormularioReminder && dueFormulario && (
-        <Link
-          href={`/revision-quincenal/${dueFormulario.week}${dueFormulario.cycle === 2 ? "?cycle=2" : ""}`}
-          className="flex items-center justify-between rounded-2xl bg-brand-primary px-5 py-4 text-sm font-medium text-white hover:opacity-90"
-        >
-          <span>
-            📋{" "}
-            {dueFormulario.when === "hoy"
-              ? "Hoy toca"
-              : dueFormulario.when === "mañana"
-                ? "Mañana toca"
-                : "Tienes pendiente"}{" "}
-            tu {dueFormulario.label.toLowerCase()}
-            {dueFormulario.cycle === 2 ? " · Renovación" : ""}
-          </span>
-          <span>Rellenar →</span>
-        </Link>
-      )}
 
       <section className="rounded-2xl bg-blanco-roto p-6">
         <p className="italic text-brand-primary">Cuidar tu digestión es cuidar de ti</p>

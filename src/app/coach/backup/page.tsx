@@ -69,8 +69,9 @@ export default async function BackupPage({
         <form action={runBackup} className="flex flex-col gap-3 rounded-2xl border border-black/5 bg-blanco-roto p-5">
           <p className="font-semibold">⚡ Copia rápida</p>
           <p className="text-sm text-foreground/70">
-            Guarda ahora mismo una copia de todos los datos en tu Google
-            Drive, sin contraseña.
+            Guarda ahora mismo una copia de todos los datos (incluidos los
+            PDFs que subes a las pacientes) en tu Google Drive, sin
+            contraseña.
           </p>
           <button
             type="submit"
@@ -84,8 +85,8 @@ export default async function BackupPage({
           <input type="hidden" name="encrypted" value="on" />
           <p className="font-semibold">🔒 Copia cifrada</p>
           <p className="text-sm text-foreground/70">
-            Igual que la copia rápida, pero protegida con una contraseña que
-            eliges tú. Sin ella no se puede restaurar.
+            Igual que la copia rápida (datos + PDFs), pero protegida con una
+            contraseña que eliges tú. Sin ella no se puede restaurar.
           </p>
           <label className="flex flex-col gap-1 text-sm">
             Contraseña de la copia

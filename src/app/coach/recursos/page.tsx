@@ -3,6 +3,13 @@ import { uploadResourceFile } from "@/app/coach/actions";
 
 export const dynamic = "force-dynamic";
 
+// "/uploads/" es el prefijo antiguo (antes de /api/files, ver esa ruta);
+// se sigue reconociendo aquí para no romper enlaces ya guardados que aún no
+// haya migrado el script de arranque.
+function isLocalUpload(url: string) {
+  return url.startsWith("/uploads/") || url.startsWith("/api/files/");
+}
+
 export default async function CoachRecursosPage() {
   const resources = await prisma.resource.findMany({
     orderBy: [{ category: "asc" }, { order: "asc" }],
@@ -44,7 +51,7 @@ export default async function CoachRecursosPage() {
                   <p className="font-medium">{resource.title}</p>
                   <p className="text-xs text-foreground/50">
                     {resource.url
-                      ? resource.url.startsWith("/uploads/")
+                      ? isLocalUpload(resource.url)
                         ? "✅ Archivo subido a la app"
                         : "🔗 Enlace externo"
                       : "⏳ Sin archivo todavía"}
@@ -66,7 +73,7 @@ export default async function CoachRecursosPage() {
                     type="submit"
                     className="shrink-0 rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
                   >
-                    {resource.url?.startsWith("/uploads/") ? "Reemplazar" : "Subir"}
+                    {resource.url && isLocalUpload(resource.url) ? "Reemplazar" : "Subir"}
                   </button>
                 </form>
               </div>

@@ -351,10 +351,10 @@ export async function uploadPatientPlanFile(formData: FormData) {
       category,
       cycle,
       slot,
-      url: `/uploads/planes/${filename}`,
+      url: `/api/files/planes/${filename}`,
       pendingEmailAt: isDigestCategory ? new Date() : null,
     },
-    update: { url: `/uploads/planes/${filename}`, pendingEmailAt: isDigestCategory ? new Date() : undefined },
+    update: { url: `/api/files/planes/${filename}`, pendingEmailAt: isDigestCategory ? new Date() : undefined },
   });
 
   // Sin await: no debe retrasar la respuesta de la subida del archivo.
@@ -685,7 +685,7 @@ export async function uploadResourceFile(formData: FormData) {
 
   await prisma.resource.update({
     where: { id: resourceId },
-    data: { url: `/uploads/recursos/${filename}` },
+    data: { url: `/api/files/recursos/${filename}` },
   });
 
   revalidatePath("/coach/recursos");

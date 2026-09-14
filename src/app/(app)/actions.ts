@@ -184,7 +184,7 @@ export async function uploadMedicalTests(formData: FormData) {
     const buffer = Buffer.from(await file.arrayBuffer());
     await writeFile(filePath, buffer);
     await verifyWrittenFile(filePath, buffer.length);
-    created.push({ patientProfileId: profile.id, fileName: file.name, url: `/uploads/pruebas-medicas/${filename}` });
+    created.push({ patientProfileId: profile.id, fileName: file.name, url: `/api/files/pruebas-medicas/${filename}` });
   }
 
   await prisma.medicalTest.createMany({ data: created });

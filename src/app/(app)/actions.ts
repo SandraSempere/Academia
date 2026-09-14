@@ -6,6 +6,7 @@ import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyWrittenFile } from "@/lib/verify-upload";
 import { PERSONAL_FIELDS, SECTIONS } from "@/lib/symptom-form-fields";
 import { QUINCENAL_SECTIONS } from "@/lib/quincenal-form-fields";
 import { CELEBRATION_FIELDS } from "@/lib/celebration-form-fields";
@@ -179,8 +180,10 @@ export async function uploadMedicalTests(formData: FormData) {
   for (const file of files) {
     const ext = path.extname(file.name) || ".pdf";
     const filename = `${profile.id}-${randomBytes(8).toString("hex")}${ext}`;
+    const filePath = path.join(dir, filename);
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(path.join(dir, filename), buffer);
+    await writeFile(filePath, buffer);
+    await verifyWrittenFile(filePath, buffer.length);
     created.push({ patientProfileId: profile.id, fileName: file.name, url: `/uploads/pruebas-medicas/${filename}` });
   }
 

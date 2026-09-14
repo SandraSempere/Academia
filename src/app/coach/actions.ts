@@ -14,6 +14,7 @@ import { sendPushToPatient } from "@/lib/push";
 import { notifyPatient } from "@/lib/notify";
 import { sendAppointmentReminderNow } from "@/lib/appointment-reminder";
 import { PLAN_FILE_CATEGORIES, DIGEST_PLAN_FILE_CATEGORIES, PLAN_FILE_CATEGORY_INFO } from "@/lib/plan-file-categories";
+import { verifyWrittenFile } from "@/lib/verify-upload";
 
 async function requireCoach() {
   const session = await auth();
@@ -329,8 +330,10 @@ export async function uploadPatientPlanFile(formData: FormData) {
   await mkdir(dir, { recursive: true });
 
   const filename = cycle === 2 ? `${profile.id}-${category}-renovacion-${slot}.pdf` : `${profile.id}-${category}-${slot}.pdf`;
+  const filePath = path.join(dir, filename);
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(dir, filename), buffer);
+  await writeFile(filePath, buffer);
+  await verifyWrittenFile(filePath, buffer.length);
 
   // Push al momento (una por documento, siempre) para las categorías del
   // email combinado — el email en sí se retrasa (ver más abajo) para no
@@ -675,8 +678,10 @@ export async function uploadResourceFile(formData: FormData) {
 
   const slug = slugify(resource.title) || "recurso";
   const filename = `${slug}-${resource.id.slice(-6)}.pdf`;
+  const filePath = path.join(dir, filename);
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(dir, filename), buffer);
+  await writeFile(filePath, buffer);
+  await verifyWrittenFile(filePath, buffer.length);
 
   await prisma.resource.update({
     where: { id: resourceId },

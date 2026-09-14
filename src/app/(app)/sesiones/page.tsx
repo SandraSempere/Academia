@@ -96,6 +96,7 @@ export default async function SesionesPage() {
         category="nutricional"
         planFileByKey={planFileByKey}
         extraResource={nutritionalGuide}
+        extraFileUrl={planFileByKey.get("documento-extra-1-1")?.url}
         hideEmptySlots
         showVideo
       />
@@ -146,6 +147,7 @@ export default async function SesionesPage() {
             category="nutricional"
             cycle={2}
             planFileByKey={planFileByKey}
+            extraFileUrl={planFileByKey.get("documento-extra-2-1")?.url}
             hideEmptySlots
             showVideo
           />
@@ -239,6 +241,7 @@ function PlanFilesSection({
   cycle = 1,
   planFileByKey,
   extraResource,
+  extraFileUrl,
   sharedResources,
   hideEmptySlots,
   showVideo,
@@ -253,6 +256,10 @@ function PlanFilesSection({
   cycle?: number;
   planFileByKey: Map<string, { url: string | null; videoUrl?: string | null }>;
   extraResource?: { id: string; title: string; description: string | null; type: string; url: string | null };
+  // "Documento extra" del Plan nutricional (categoría "documento-extra",
+  // hueco único) — a diferencia de los huecos numerados, no tiene un primer
+  // hueco "próximamente": no aparece nada hasta que la coach lo sube.
+  extraFileUrl?: string | null;
   sharedResources?: { id: string; title: string; description: string | null; type: string; url: string | null }[];
   hideEmptySlots?: boolean;
   // Muestra el vídeo (Loom) de la coach debajo del PDF de cada hueco, si lo
@@ -296,6 +303,9 @@ function PlanFilesSection({
             )}
           </div>
         ))}
+        {extraFileUrl && (
+          <ResourceCard title="📎 Documento extra" type="PDF" url={extraFileUrl} />
+        )}
       </div>
     </details>
   );

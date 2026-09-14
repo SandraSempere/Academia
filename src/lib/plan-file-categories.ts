@@ -5,6 +5,7 @@ export const PLAN_FILE_CATEGORIES = [
   "recetas",
   "analiticas",
   "reintroduccion",
+  "documento-extra",
 ];
 
 // Categorías que se agrupan en un único email combinado (ver
@@ -14,7 +15,14 @@ export const PLAN_FILE_CATEGORIES = [
 // avanza esa fase, no todos de golpe) — agruparlos no tendría sentido, así
 // que manda su propio email al momento, igual que hacía antes el plan
 // nutricional en solitario.
-export const DIGEST_PLAN_FILE_CATEGORIES = ["accion", "nutricional", "suplementacion", "analiticas", "recetas"];
+export const DIGEST_PLAN_FILE_CATEGORIES = [
+  "accion",
+  "nutricional",
+  "suplementacion",
+  "analiticas",
+  "recetas",
+  "documento-extra",
+];
 
 // Textos ya redactados a mano (no derivados mecánicamente del nombre de la
 // categoría) porque el género/número cambia según cuál sea — "Nueva
@@ -53,5 +61,10 @@ export const PLAN_FILE_CATEGORY_INFO: Record<
     pushTitle: "🔓 Nuevo documento de reintroducción",
     pushBody: "Sandra te ha subido un documento de tu fase de reintroducción.",
     digestLine: "🔓 Un documento de tu fase de reintroducción",
+  },
+  "documento-extra": {
+    pushTitle: "📎 Documento extra",
+    pushBody: "Sandra te ha subido un documento extra para tu plan nutricional.",
+    digestLine: "📎 Un documento extra para tu plan nutricional",
   },
 };

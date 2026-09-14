@@ -696,6 +696,15 @@ export default async function PacienteDetailPage({
                 />
               ))}
             </div>
+            {section.category === "nutricional" && (
+              <PlanFileUploadRow
+                userId={patient.id}
+                category="documento-extra"
+                slot={1}
+                label="📎 Documento extra"
+                currentUrl={planFileByKey.get("documento-extra-1-1")?.url}
+              />
+            )}
           </div>
         ))}
 
@@ -749,6 +758,16 @@ export default async function PacienteDetailPage({
                   />
                 ))}
               </div>
+              {section.category === "nutricional" && (
+                <PlanFileUploadRow
+                  userId={patient.id}
+                  category="documento-extra"
+                  slot={1}
+                  cycle={2}
+                  label="📎 Documento extra"
+                  currentUrl={planFileByKey.get("documento-extra-2-1")?.url}
+                />
+              )}
             </div>
           ))}
 

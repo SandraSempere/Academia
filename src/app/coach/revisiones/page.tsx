@@ -76,7 +76,10 @@ function RevisionesTable({
             const alert = formularioAlert(row.planStartDate, row.revision4Date, row.revision8Date, today);
 
             return (
-              <tr key={row.id} className="border-b border-black/5 align-top">
+              <tr
+                key={row.id}
+                className={`border-b border-black/5 align-top ${alert ? "bg-brand-primary-soft" : ""}`}
+              >
                 <td className="p-3">
                   <Link href={`/coach/pacientes/${row.id}`} className="font-medium hover:text-brand-primary">
                     {row.name}
@@ -125,7 +128,7 @@ function RevisionesTable({
                 })}
                 <td className="p-3">
                   {alert && (
-                    <span className="whitespace-nowrap rounded-full bg-brand-primary-soft px-2.5 py-1 text-xs">
+                    <span className="whitespace-nowrap rounded-full bg-brand-primary px-2.5 py-1 text-xs font-medium text-white">
                       {alert}
                     </span>
                   )}
@@ -173,7 +176,10 @@ function ExtraMonthTable({ rows, today }: { rows: ExtraMonthRow[]; today: Date }
             const alert = extraMonthFormularioAlert(row.extraMonthStartDate, today);
 
             return (
-              <tr key={row.id} className="border-b border-black/5 align-top">
+              <tr
+                key={row.id}
+                className={`border-b border-black/5 align-top ${alert ? "bg-brand-primary-soft" : ""}`}
+              >
                 <td className="p-3">
                   <Link href={`/coach/pacientes/${row.id}`} className="font-medium hover:text-brand-primary">
                     {row.name}
@@ -188,7 +194,7 @@ function ExtraMonthTable({ rows, today }: { rows: ExtraMonthRow[]; today: Date }
                 <td className="p-3 text-foreground/70">{revisionFinal16.date.toLocaleDateString("es-ES")}</td>
                 <td className="p-3">
                   {alert && (
-                    <span className="whitespace-nowrap rounded-full bg-brand-primary-soft px-2.5 py-1 text-xs">
+                    <span className="whitespace-nowrap rounded-full bg-brand-primary px-2.5 py-1 text-xs font-medium text-white">
                       {alert}
                     </span>
                   )}

@@ -558,6 +558,14 @@ export default async function PacienteDetailPage({
 
         {medicalTests.length > 0 && (
           <div className="mt-4 flex flex-col gap-2">
+            {medicalTests.length > 1 && (
+              <a
+                href={`/api/coach/pruebas-medicas-zip/${patient.id}`}
+                className="self-start rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+              >
+                ⬇️ Descargar todas ({medicalTests.length})
+              </a>
+            )}
             {medicalTests.map((test) => (
               <a
                 key={test.id}

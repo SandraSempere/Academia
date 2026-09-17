@@ -192,12 +192,7 @@ export default async function ProgresoPage() {
               const videoUrl = quincenalByWeek.get(week)?.coachVideoUrl;
               return videoUrl ? (
                 <VideoEmbed key={week} title={`🎥 Vídeo personalizado · Semana ${week}`} url={videoUrl} />
-              ) : (
-                <span key={week} className="text-sm text-foreground/60">
-                  🎥 Vídeo personalizado · Semana {week} — te lo dejaré aquí
-                  después de revisar tu revisión quincenal.
-                </span>
-              );
+              ) : null;
             })}
           </div>
         </details>
@@ -238,12 +233,7 @@ export default async function ProgresoPage() {
                 const videoUrl = quincenalByWeekRenewal.get(week)?.coachVideoUrl;
                 return videoUrl ? (
                   <VideoEmbed key={week} title={`🎥 Vídeo personalizado · Semana ${week}`} url={videoUrl} />
-                ) : (
-                  <span key={week} className="text-sm text-foreground/60">
-                    🎥 Vídeo personalizado · Semana {week} — te lo dejaré aquí
-                    después de revisar tu revisión quincenal.
-                  </span>
-                );
+                ) : null;
               })}
             </div>
           </details>
@@ -279,15 +269,10 @@ export default async function ProgresoPage() {
                 );
               })()}
             </div>
-            {quincenalByWeek.get(14)?.coachVideoUrl ? (
+            {quincenalByWeek.get(14)?.coachVideoUrl && (
               <div className="mt-3">
                 <VideoEmbed title="🎥 Vídeo personalizado · Semana 14" url={quincenalByWeek.get(14)!.coachVideoUrl!} />
               </div>
-            ) : (
-              <p className="mt-3 text-sm text-foreground/60">
-                🎥 Vídeo personalizado · Semana 14 — te lo dejaré aquí después
-                de revisar tu revisión quincenal.
-              </p>
             )}
           </details>
         )}

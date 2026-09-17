@@ -14,7 +14,7 @@ export async function getCurrentPatientProfile() {
 export async function getPatientsWithStatus() {
   const patients = await prisma.user.findMany({
     where: { role: "PATIENT" },
-    orderBy: { createdAt: "desc" },
+    orderBy: { name: "asc" },
     include: {
       patientProfile: {
         include: {

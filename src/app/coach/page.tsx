@@ -213,9 +213,12 @@ export default async function CoachHomePage() {
       </div>
 
       {needsTime.length > 0 && (
-        <div className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
-          <p className="font-semibold">⏰ Citas de revisión sin hora</p>
-          <p className="mt-1 text-xs text-foreground/50">
+        <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+          <summary className="cursor-pointer font-semibold">
+            ⏰ Citas de revisión sin hora{" "}
+            <span className="font-normal text-foreground/60">· {needsTime.length}</span>
+          </summary>
+          <p className="mt-3 text-xs text-foreground/50">
             Se han añadido solas a tu Agenda al calcularse — cuadra la hora
             con cada paciente y ponla desde Agenda.
           </p>
@@ -234,7 +237,7 @@ export default async function CoachHomePage() {
               </Link>
             ))}
           </div>
-        </div>
+        </details>
       )}
 
       <div className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
@@ -261,10 +264,15 @@ export default async function CoachHomePage() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
-        <p className="font-semibold">📝 Formularios pendientes de tus pacientes</p>
+      <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+        <summary className="cursor-pointer font-semibold">
+          📝 Formularios pendientes de tus pacientes{" "}
+          {pendingByPatient.length > 0 && (
+            <span className="font-normal text-foreground/60">· {pendingByPatient.length}</span>
+          )}
+        </summary>
         {pendingByPatient.length === 0 ? (
-          <p className="mt-2 text-sm text-foreground/60">
+          <p className="mt-3 text-sm text-foreground/60">
             Todas tus pacientes activas están al día con sus formularios.
           </p>
         ) : (
@@ -285,7 +293,7 @@ export default async function CoachHomePage() {
             ))}
           </div>
         )}
-      </div>
+      </details>
     </div>
   );
 }

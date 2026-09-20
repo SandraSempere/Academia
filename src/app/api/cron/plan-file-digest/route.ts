@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       (c) => PLAN_FILE_CATEGORY_INFO[c].digestLine,
     );
 
-    await sendPlanFilesDigestEmail(patientProfile.user.email, patientProfile.user.name ?? "", items);
+    await sendPlanFilesDigestEmail(patientProfile.user.email, patientProfile.user.name ?? "", items, patientProfile.id);
     await prisma.patientPlanFile.updateMany({
       where: { id: { in: files.map((f) => f.id) } },
       data: { pendingEmailAt: null },

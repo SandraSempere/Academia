@@ -1,17 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { isSameDay, isTimeTbd } from "@/lib/revisiones";
-import { REVISION_SOURCES, appointmentReminderPush } from "@/lib/appointment-reminder";
-import { sendPatientAppointmentReminderEmail } from "@/lib/email";
-import { notifyPatient } from "@/lib/notify";
+import { REVISION_SOURCES, sendAppointmentReminderNow } from "@/lib/appointment-reminder";
 
 // Comprobación diaria: a qué pacientes les toca (mañana o hoy) una cita de
 // revisión — les manda un recordatorio (email siempre, y notificación push
 // además si están suscritas), el día antes y el día exacto, cada uno con
 // su propio "ya avisado" para no repetirlo. Ignora las citas todavía "sin
 // hora" (marcador 00:00 = falta por coordinar con la paciente). El botón
-// "🔁 Reenviar recordatorio (prueba)" de la Agenda usa el mismo
-// `appointmentReminderPush`/`notifyPatient` que aquí (ver
-// src/lib/appointment-reminder.ts) para poder probar en caliente.
+// "🔁 Reenviar recordatorio (prueba)" de la Agenda llama a la misma
+// `sendAppointmentReminderNow` que aquí (ver src/lib/appointment-reminder.ts)
+// para poder probar en caliente.
 //
 // En producción la llama un cron aparte de Railway, programado a las 9:00
 // (así el aviso del mismo día llega justo a esa hora) — mismo CRON_SECRET
@@ -52,11 +50,7 @@ export async function GET(request: Request) {
 
     await prisma.appointment.update({ where: { id: appt.id }, data: { [sentField]: today } });
 
-    const label = appt.notes ?? "tu cita de revisión";
-    const { user } = appt.patientProfile;
-    const { pushDelivered } = await notifyPatient(appt.patientProfile.id, appointmentReminderPush(label, appt.date, when), () =>
-      sendPatientAppointmentReminderEmail(user.email, user.name ?? "", appt.date),
-    );
+    const { pushDelivered } = await sendAppointmentReminderNow(appt.id, when);
     console.log(
       `[appointment-reminders] cita=${appt.id} paciente=${appt.patientProfile.id} when=${when} pushDelivered=${pushDelivered}`,
     );

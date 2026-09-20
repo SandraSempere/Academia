@@ -8,11 +8,19 @@ import { sendPushToPatient } from "@/lib/push";
 
 // Devuelve si el push se entregó (útil para depurar en caliente desde el
 // panel de coach) — quien no lo necesite puede simplemente ignorarlo.
+// `category` identifica el tipo de aviso para el historial de
+// `/coach/pacientes/[id]` (ver src/lib/push.ts y src/lib/email.ts) — el
+// `sendEmail` que se le pasa debe llevar ya la misma categoría incorporada
+// (cada función de email en src/lib/email.ts la recibe como parámetro).
 export async function notifyPatient(
   patientProfileId: string,
   push: { title: string; body: string; url?: string },
   sendEmail: () => Promise<void>,
+  category: string,
 ): Promise<{ pushDelivered: boolean }> {
-  const [pushDelivered] = await Promise.all([sendPushToPatient(patientProfileId, push), sendEmail()]);
+  const [pushDelivered] = await Promise.all([
+    sendPushToPatient(patientProfileId, push, { category }),
+    sendEmail(),
+  ]);
   return { pushDelivered };
 }

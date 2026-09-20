@@ -24,6 +24,7 @@ import { EatingChecklistSummary } from "@/components/eating-checklist-summary";
 import { RuleAuditFormSummary } from "@/components/rule-audit-form-summary";
 import { CommitmentFormSummary } from "@/components/commitment-form-summary";
 import { MealDiarySummary } from "@/components/meal-diary-summary";
+import { NotificationHistory } from "@/components/notification-history";
 import { ProgramTimeline } from "@/components/program-timeline";
 import { PERSONAL_FIELDS } from "@/lib/symptom-form-fields";
 import type { MealDiaryEntryData } from "@/lib/meal-diary-fields";
@@ -179,6 +180,11 @@ export default async function PacienteDetailPage({
   const clinicalNotes = await prisma.clinicalNote.findMany({
     where: { patientProfileId: patient.patientProfile.id },
     orderBy: { date: "desc" },
+  });
+  const notificationLogs = await prisma.notificationLog.findMany({
+    where: { patientProfileId: patient.patientProfile.id },
+    orderBy: { createdAt: "desc" },
+    take: 30,
   });
   const symptomForm = await prisma.symptomForm.findUnique({
     where: { patientProfileId: patient.patientProfile.id },
@@ -405,6 +411,16 @@ export default async function PacienteDetailPage({
             ))
           )}
         </div>
+      </details>
+
+      <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+        <summary className="cursor-pointer font-semibold">🔔 Historial de avisos</summary>
+        <p className="mt-1 text-xs text-foreground/50">
+          Cada vez que le llega un email o una notificación push (documentos de plan, recordatorios,
+          vídeos de revisión...). El email pasa de &ldquo;Enviado&rdquo; a &ldquo;Entregado&rdquo;/&ldquo;Abierto&rdquo;
+          más tarde, si tienes activado el webhook de Resend.
+        </p>
+        <NotificationHistory logs={notificationLogs} />
       </details>
 
       {symptomForm && (

@@ -42,9 +42,12 @@ export async function sendAppointmentReminderNow(appointmentId: string, when: "h
   if (!appt?.patientProfile) throw new Error("Cita no encontrada o sin paciente asociada");
 
   const label = appt.notes ?? "tu cita de revisión";
-  const { user } = appt.patientProfile;
+  const { user, id: patientProfileId } = appt.patientProfile;
 
-  return notifyPatient(appt.patientProfile.id, appointmentReminderPush(label, appt.date, when), () =>
-    sendPatientAppointmentReminderEmail(user.email, user.name ?? "", appt.date),
+  return notifyPatient(
+    patientProfileId,
+    appointmentReminderPush(label, appt.date, when),
+    () => sendPatientAppointmentReminderEmail(user.email, user.name ?? "", appt.date, patientProfileId),
+    "appointment_reminder",
   );
 }

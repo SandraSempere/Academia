@@ -65,8 +65,11 @@ export async function GET(request: Request) {
         update: { [sentField]: today },
       });
 
-      await notifyPatient(profile.id, reminderPush(due.week, due.when, cycle), () =>
-        sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, cycle),
+      await notifyPatient(
+        profile.id,
+        reminderPush(due.week, due.when, cycle),
+        () => sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, cycle, profile.id),
+        "quincenal_reminder",
       );
       remindersSent++;
     }
@@ -87,8 +90,11 @@ export async function GET(request: Request) {
             update: { [sentField]: today },
           });
 
-          await notifyPatient(profile.id, reminderPush(due.week, due.when, 1), () =>
-            sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, 1),
+          await notifyPatient(
+            profile.id,
+            reminderPush(due.week, due.when, 1),
+            () => sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, 1, profile.id),
+            "quincenal_reminder",
           );
           remindersSent++;
         }

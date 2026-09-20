@@ -4,6 +4,8 @@
 // conexiones salientes por los puertos 465/587/25 en el plan Hobby, así que
 // nodemailer se quedaba colgado varios minutos y nunca llegaba a conectar.
 // Resend manda por HTTPS, que no tiene ese problema.
+import { prisma } from "@/lib/prisma";
+
 const FROM = process.env.EMAIL_FROM
   ? `Origen Digestivo <${process.env.EMAIL_FROM}>`
   : null;
@@ -70,7 +72,31 @@ function textToHtmlBody(text: string) {
     .join("");
 }
 
-async function sendEmail(to: string, subject: string, text: string, opts: { signature?: boolean } = {}) {
+function logEmailNotification(
+  patientProfileId: string,
+  category: string,
+  title: string,
+  status: "sent" | "failed",
+  resendId?: string,
+) {
+  return prisma.notificationLog
+    .create({ data: { patientProfileId, channel: "email", category, title, status, resendId } })
+    .catch(() => {});
+}
+
+// `patientProfileId`/`category` son opcionales: solo se guarda en el
+// historial (`/coach/pacientes/[id]`) si se pasan los dos — los avisos
+// internos a la propia Sandra (`sendNotificationEmail`) y el de "olvidé mi
+// contraseña" (autoservicio, no lo dispara la coach) no los pasan. El
+// `resendId` que devuelve Resend al aceptar el email se guarda para que el
+// webhook (`/api/webhooks/resend`) pueda casar los eventos que lleguen
+// después (entregado/abierto/rebotado) con esta misma fila.
+async function sendEmail(
+  to: string,
+  subject: string,
+  text: string,
+  opts: { signature?: boolean; patientProfileId?: string; category?: string } = {},
+) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || !FROM) {
     console.warn("Email no configurado (falta RESEND_API_KEY/EMAIL_FROM) — no enviado:", subject);
@@ -96,9 +122,20 @@ async function sendEmail(to: string, subject: string, text: string, opts: { sign
     });
     if (!res.ok) {
       console.error("Error enviando email:", subject, "->", res.status, await res.text());
+      if (opts.patientProfileId && opts.category) {
+        await logEmailNotification(opts.patientProfileId, opts.category, subject, "failed");
+      }
+      return;
+    }
+    if (opts.patientProfileId && opts.category) {
+      const body = (await res.json().catch(() => null)) as { id?: string } | null;
+      await logEmailNotification(opts.patientProfileId, opts.category, subject, "sent", body?.id);
     }
   } catch (err) {
     console.error("Error enviando email:", subject, err);
+    if (opts.patientProfileId && opts.category) {
+      await logEmailNotification(opts.patientProfileId, opts.category, subject, "failed");
+    }
   }
 }
 
@@ -119,6 +156,7 @@ export async function sendPatientFormReminderEmail(
   week: 2 | 6 | 10 | 14,
   when: "hoy" | "mañana",
   cycle: 1 | 2 = 1,
+  patientProfileId?: string,
 ) {
   // Igual que en el resto de avisos con ciclo (revisión quincenal, PDFs...):
   // si algún día coincide que a la misma paciente le toca la misma semana en
@@ -150,7 +188,12 @@ Cuando puedas, entra en tu espacio de Origen Digestivo y prepárate para rellena
 Nos vemos ahí 🌿
 Sandra`;
 
-  await sendEmail(to, subject, text);
+  await sendEmail(
+    to,
+    subject,
+    text,
+    patientProfileId ? { patientProfileId, category: "quincenal_reminder" } : {},
+  );
 }
 
 // Recordatorio a la paciente de su próxima cita de revisión (semana
@@ -158,7 +201,12 @@ Sandra`;
 // y el mismo día (ya incluye la fecha y hora exactas, así que no hace
 // falta variar el mensaje según "cuándo", a diferencia del recordatorio de
 // formulario quincenal).
-export async function sendPatientAppointmentReminderEmail(to: string, name: string, date: Date) {
+export async function sendPatientAppointmentReminderEmail(
+  to: string,
+  name: string,
+  date: Date,
+  patientProfileId?: string,
+) {
   const dayLabel = date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
   const timeLabel = date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
   const text = `¡Hola ${name}!
@@ -175,12 +223,17 @@ Si necesitas cambiarla o surge algún imprevisto, avísame con tiempo y lo movem
 ¡Hasta pronto!
 Sandra`;
 
-  await sendEmail(to, "Recordatorio: tu cita de revisión 📅", text);
+  await sendEmail(
+    to,
+    "Recordatorio: tu cita de revisión 📅",
+    text,
+    patientProfileId ? { patientProfileId, category: "appointment_reminder" } : {},
+  );
 }
 
 // Bienvenida a una paciente recién dada de alta, con su contraseña
 // temporal — se manda una sola vez, al crearla desde el panel de coach.
-export async function sendWelcomeEmail(to: string, name: string, password: string) {
+export async function sendWelcomeEmail(to: string, name: string, password: string, patientProfileId?: string) {
   const text = `¡Hola ${name}!
 
 Bienvenida a Origen Digestivo. Estamos encantadas de acompañarte en este proceso.
@@ -207,7 +260,12 @@ Antes de nada:
 
 ¡Ya tienes todo listo para empezar!`;
 
-  await sendEmail(to, "Bienvenida a Origen Digestivo 🌿", text);
+  await sendEmail(
+    to,
+    "Bienvenida a Origen Digestivo 🌿",
+    text,
+    patientProfileId ? { patientProfileId, category: "welcome" } : {},
+  );
 }
 
 // "¿Olvidaste tu contraseña?" — enlace de un solo uso, válido 1 hora.
@@ -222,7 +280,7 @@ export async function sendPasswordResetEmail(to: string, name: string, resetUrl:
 // suplementación, analítica y/o recetas. Uno solo, con lo que aplique, en
 // vez de un email por cada archivo (ver DIGEST_PLAN_FILE_CATEGORIES y el
 // cron /api/cron/plan-file-digest, que es quien decide cuándo mandarlo).
-export async function sendPlanFilesDigestEmail(to: string, name: string, items: string[]) {
+export async function sendPlanFilesDigestEmail(to: string, name: string, items: string[], patientProfileId: string) {
   const list = items.map((line) => `${line}`).join("\n");
   const text = `¡Hola ${name}!
 
@@ -238,14 +296,14 @@ Cualquier duda que te surja, aquí estoy.
 
 Un abrazo,
 Sandra`;
-  await sendEmail(to, "Ya tienes tu plan disponible 🌿", text);
+  await sendEmail(to, "Ya tienes tu plan disponible 🌿", text, { patientProfileId, category: "plan_file_digest" });
 }
 
 // Aviso individual (a diferencia del combinado de arriba) de un documento
 // nuevo de la fase de reintroducción — se manda al momento, sin agrupar,
 // porque cada uno llega en un momento muy distinto del programa (según
 // avanza esa fase), no tiene sentido esperar a juntar varios.
-export async function sendReintroductionDocEmail(to: string, name: string) {
+export async function sendReintroductionDocEmail(to: string, name: string, patientProfileId: string) {
   const text = `¡Hola ${name}!
 
 Ya tienes disponible un nuevo documento de tu fase de reintroducción en tu espacio de Origen Digestivo.
@@ -256,12 +314,15 @@ Cualquier duda que te surja, aquí estoy.
 
 Un abrazo,
 Sandra`;
-  await sendEmail(to, "Nuevo documento de tu fase de reintroducción 🔓", text);
+  await sendEmail(to, "Nuevo documento de tu fase de reintroducción 🔓", text, {
+    patientProfileId,
+    category: "plan_file_reintroduccion",
+  });
 }
 
 // Aviso (siempre, además de la notificación push si la tiene activada) de
 // que Sandra le ha dejado un vídeo respondiendo a su revisión quincenal.
-export async function sendQuincenalVideoEmail(to: string, name: string) {
+export async function sendQuincenalVideoEmail(to: string, name: string, patientProfileId: string) {
   const text = `¡Hola ${name}!
 
 Ya he revisado tu formulario de seguimiento y te he dejado un vídeo personalizado con todo lo que he visto: cómo vas evolucionando, qué está funcionando bien y qué ajustes tocan a partir de ahora.
@@ -272,5 +333,5 @@ Si después de verlo te queda alguna duda, aquí estoy.
 
 Un abrazo,
 Sandra`;
-  await sendEmail(to, "Tu revisión ya está lista 🎥", text);
+  await sendEmail(to, "Tu revisión ya está lista 🎥", text, { patientProfileId, category: "quincenal_video" });
 }

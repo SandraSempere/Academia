@@ -81,6 +81,7 @@ model PatientProfile {
   mealDiaryEntries MealDiaryEntry[]
   clinicalNotes    ClinicalNote[]
   pushSubscriptions PushSubscription[]
+  notificationLogs  NotificationLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -500,4 +501,27 @@ model PushSubscription {
   p256dh           String
   auth             String
   createdAt        DateTime       @default(now())
+}
+
+// Historial de avisos (push/email) mandados a una paciente — para que la
+// coach pueda ver en su ficha si de verdad le llegó algo, sin tener que
+// pedir que se lo mire en los logs de Railway. `resendId` es el id que
+// devuelve Resend al aceptar el email (guardado al mandarlo); el webhook de
+// Resend (`/api/webhooks/resend`) lo usa para casar los eventos que llegan
+// después (entregado/abierto/rebotado) con esta misma fila.
+model NotificationLog {
+  id               String         @id @default(cuid())
+  patientProfileId String
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  channel          String // "push" | "email"
+  category         String // "plan_file_upload" | "plan_file_digest" | "plan_file_reintroduccion" | "appointment_reminder" | "quincenal_reminder" | "quincenal_video" | "welcome" | "test_push"
+  title            String // asunto del email, o título de la notificación push
+  status           String // push: "delivered" | "no_subscription" | "failed" — email: "sent" | "failed" | "delivered" | "opened" | "bounced" | "complained"
+  resendId         String? // solo para channel "email", para casar los eventos del webhook
+  openedAt         DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([patientProfileId, createdAt])
+  @@index([resendId])
 }

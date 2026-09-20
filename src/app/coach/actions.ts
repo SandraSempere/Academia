@@ -73,11 +73,11 @@ export async function sendTestPush(formData: FormData) {
   const profile = await prisma.patientProfile.findUnique({ where: { userId } });
   if (!profile) throw new Error("Paciente no encontrada");
 
-  await sendPushToPatient(profile.id, {
-    title: "🔔 Notificación de prueba",
-    body: "Si ves esto, las notificaciones están funcionando.",
-    url: "/",
-  });
+  await sendPushToPatient(
+    profile.id,
+    { title: "🔔 Notificación de prueba", body: "Si ves esto, las notificaciones están funcionando.", url: "/" },
+    { category: "test_push" },
+  );
 }
 
 // Botón de un solo uso para reenviar el recordatorio de UNA cita de
@@ -137,12 +137,13 @@ export async function createPatient(formData: FormData) {
       role: "PATIENT",
       patientProfile: { create: { plan: { create: {} } } },
     },
+    include: { patientProfile: true },
   });
 
   // Sin await a propósito: si Gmail va lento o falla, que no deje a la
   // coach esperando con el formulario colgado — la paciente ya está creada,
   // el email es secundario y se manda de fondo.
-  sendWelcomeEmail(email, name, password);
+  sendWelcomeEmail(email, name, password, user.patientProfile?.id);
 
   revalidatePath("/coach");
   return { userId: user.id };
@@ -255,7 +256,8 @@ export async function updateQuincenalVideo(formData: FormData) {
         body: `Sandra te ha dejado un vídeo respondiendo a tu revisión de la semana ${week}.`,
         url: "/progreso",
       },
-      () => sendQuincenalVideoEmail(profile.user.email, profile.user.name ?? ""),
+      () => sendQuincenalVideoEmail(profile.user.email, profile.user.name ?? "", profile.id),
+      "quincenal_video",
     );
   }
 
@@ -359,10 +361,17 @@ export async function uploadPatientPlanFile(formData: FormData) {
 
   // Sin await: no debe retrasar la respuesta de la subida del archivo.
   if (isDigestCategory) {
-    sendPushToPatient(profile.id, { title: info.pushTitle, body: info.pushBody, url: "/sesiones" });
+    sendPushToPatient(
+      profile.id,
+      { title: info.pushTitle, body: info.pushBody, url: "/sesiones" },
+      { category: "plan_file_upload" },
+    );
   } else if (category === "reintroduccion") {
-    notifyPatient(profile.id, { title: info.pushTitle, body: info.pushBody, url: "/sesiones" }, () =>
-      sendReintroductionDocEmail(profile.user.email, profile.user.name ?? ""),
+    notifyPatient(
+      profile.id,
+      { title: info.pushTitle, body: info.pushBody, url: "/sesiones" },
+      () => sendReintroductionDocEmail(profile.user.email, profile.user.name ?? "", profile.id),
+      "plan_file_reintroduccion",
     );
   }
 

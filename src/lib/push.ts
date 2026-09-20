@@ -11,14 +11,29 @@ if (PUBLIC_KEY && PRIVATE_KEY) {
   webpush.setVapidDetails(SUBJECT, PUBLIC_KEY, PRIVATE_KEY);
 }
 
+function logNotification(
+  patientProfileId: string,
+  category: string,
+  title: string,
+  status: "delivered" | "no_subscription" | "failed",
+) {
+  return prisma.notificationLog
+    .create({ data: { patientProfileId, channel: "push", category, title, status } })
+    .catch(() => {});
+}
+
 // Devuelve si se ha entregado al menos a una suscripción — lo usa
 // notify.ts para decidir si hace falta el email de respaldo. "Entregado"
 // aquí significa que el servicio de push (FCM/APNs...) la aceptó, que es
 // lo máximo que se puede saber desde el servidor — Web Push no avisa si
-// el móvil llegó a mostrarla de verdad.
+// el móvil llegó a mostrarla de verdad. `category` es opcional: solo se
+// guarda en el historial (`/coach/pacientes/[id]`) si se pasa — el botón
+// de notificación de prueba, por ejemplo, también la pasa para que quede
+// claro en el historial que fue una prueba manual, no un aviso real.
 export async function sendPushToPatient(
   patientProfileId: string,
   payload: { title: string; body: string; url?: string },
+  context?: { category: string },
 ): Promise<boolean> {
   if (!PUBLIC_KEY || !PRIVATE_KEY) {
     console.warn("VAPID no configurado — no se manda la notificación push.");
@@ -28,6 +43,7 @@ export async function sendPushToPatient(
   const subscriptions = await prisma.pushSubscription.findMany({ where: { patientProfileId } });
   if (subscriptions.length === 0) {
     console.log(`[push] paciente=${patientProfileId} sin suscripciones registradas — no se manda nada.`);
+    if (context) await logNotification(patientProfileId, context.category, payload.title, "no_subscription");
     return false;
   }
 
@@ -67,6 +83,8 @@ export async function sendPushToPatient(
       }
     }),
   );
+
+  if (context) await logNotification(patientProfileId, context.category, payload.title, delivered ? "delivered" : "failed");
 
   return delivered;
 }

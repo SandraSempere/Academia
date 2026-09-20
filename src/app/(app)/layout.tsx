@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: "/academia", label: "Academia" },
   { href: "/sesiones", label: "Sesiones" },
   { href: "/progreso", label: "Mi progreso" },
+  { href: "/citas", label: "Citas" },
 ];
 
 export default async function AppLayout({

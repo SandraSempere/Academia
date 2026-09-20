@@ -1,9 +1,63 @@
 import Link from "next/link";
 import { getCurrentPatientProfile } from "@/lib/patient";
 import { prisma } from "@/lib/prisma";
-import { formularioBannerStatus, extraMonthFormularioBannerStatus, isTimeTbd, atMidnight } from "@/lib/revisiones";
+import {
+  formularioBannerStatus,
+  extraMonthFormularioBannerStatus,
+  computeCheckpoints,
+  computeExtraMonthCheckpoints,
+  isTimeTbd,
+  atMidnight,
+} from "@/lib/revisiones";
 
 export const dynamic = "force-dynamic";
+
+type FormularioCheckpoint = { label: string; date: Date; week: 2 | 6 | 10 | 14 };
+
+function FormularioChecklist({
+  title,
+  checkpoints,
+  isSubmitted,
+  cycle,
+}: {
+  title: string;
+  checkpoints: FormularioCheckpoint[];
+  isSubmitted: (week: number) => boolean;
+  cycle: 1 | 2;
+}) {
+  return (
+    <div>
+      <p className="text-sm font-medium text-foreground/60">{title}</p>
+      <div className="mt-2 flex flex-col gap-2">
+        {checkpoints.map((checkpoint) => {
+          const submitted = isSubmitted(checkpoint.week);
+          return submitted ? (
+            <div
+              key={checkpoint.week}
+              className="flex items-center justify-between rounded-2xl border border-black/5 bg-blanco-roto px-4 py-3 text-sm"
+            >
+              <span>
+                {checkpoint.label} · {checkpoint.date.toLocaleDateString("es-ES")}
+              </span>
+              <span className="font-medium text-brand-tertiary">✅ Enviado</span>
+            </div>
+          ) : (
+            <Link
+              key={checkpoint.week}
+              href={`/revision-quincenal/${checkpoint.week}${cycle === 2 ? "?cycle=2" : ""}`}
+              className="flex items-center justify-between rounded-2xl bg-brand-primary px-4 py-3 text-sm font-medium text-white hover:opacity-90"
+            >
+              <span>
+                {checkpoint.label} · {checkpoint.date.toLocaleDateString("es-ES")}
+              </span>
+              <span>Rellenar →</span>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default async function CitasPage() {
   const profile = await getCurrentPatientProfile();
@@ -47,6 +101,29 @@ export default async function CitasPage() {
         ? { ...dueExtraMonth, cycle: 1 as const }
         : null;
 
+  function onlyFormularios<W extends number>(
+    checkpoints: { label: string; date: Date; formWeek?: W }[],
+  ): FormularioCheckpoint[] {
+    return checkpoints
+      .filter((c): c is { label: string; date: Date; formWeek: W } => c.formWeek !== undefined)
+      .map((c) => ({ label: c.label, date: c.date, week: c.formWeek as unknown as 2 | 6 | 10 | 14 }));
+  }
+
+  const checkpointsCycle1: FormularioCheckpoint[] = profile?.planStartDate
+    ? onlyFormularios(computeCheckpoints(profile.planStartDate, profile.revision4Date, profile.revision8Date))
+    : [];
+
+  const checkpointsCycle2: FormularioCheckpoint[] =
+    profile?.renewalEnabled && profile.renewalPlanStartDate
+      ? onlyFormularios(
+          computeCheckpoints(profile.renewalPlanStartDate, profile.renewalRevision4Date, profile.renewalRevision8Date),
+        )
+      : [];
+
+  const checkpointsExtraMonth: FormularioCheckpoint[] = profile?.extraMonthEnabled
+    ? onlyFormularios(computeExtraMonthCheckpoints(profile.extraMonthStartDate!))
+    : [];
+
   // Solo citas con hora ya puesta por la coach (si sigue en 00:00 es que
   // todavía no la ha coordinado) y que no hayan pasado ya.
   const upcomingAppointments = appointments.filter(
@@ -79,6 +156,36 @@ export default async function CitasPage() {
           </span>
           <span>Rellenar →</span>
         </Link>
+      )}
+
+      {(checkpointsCycle1.length > 0 || checkpointsCycle2.length > 0 || checkpointsExtraMonth.length > 0) && (
+        <section className="flex flex-col gap-4">
+          <h2 className="text-lg font-semibold">📝 Tus formularios</h2>
+          {checkpointsCycle1.length > 0 && (
+            <FormularioChecklist
+              title="Semanas 2, 6 y 10"
+              checkpoints={checkpointsCycle1}
+              isSubmitted={(week) => isSubmitted(1, week)}
+              cycle={1}
+            />
+          )}
+          {checkpointsCycle2.length > 0 && (
+            <FormularioChecklist
+              title="Semanas 2, 6 y 10 · Renovación"
+              checkpoints={checkpointsCycle2}
+              isSubmitted={(week) => isSubmitted(2, week)}
+              cycle={2}
+            />
+          )}
+          {checkpointsExtraMonth.length > 0 && (
+            <FormularioChecklist
+              title="Semana 14 · Mes extra"
+              checkpoints={checkpointsExtraMonth}
+              isSubmitted={(week) => isSubmitted(1, week)}
+              cycle={1}
+            />
+          )}
+        </section>
       )}
 
       <section>

@@ -559,8 +559,13 @@ export async function enableExtraMonth(formData: FormData) {
   const profile = await prisma.patientProfile.findUnique({ where: { userId } });
   if (!profile) throw new Error("Paciente no encontrada");
   if (profile.extraMonthEnabled) return;
+  if (!profile.planStartDate) throw new Error("Esta paciente todavía no tiene fecha de inicio de plan");
 
-  const extraMonthStartDate = new Date();
+  // El mes extra (semanas 13-16) se cuenta desde la Revisión final semana
+  // 12 (planStartDate + 90 días, igual que en computeCheckpoints) — no
+  // desde el momento en que la coach pulsa este botón, que puede ser unos
+  // días antes o después de esa revisión.
+  const extraMonthStartDate = atMidnight(addDays(profile.planStartDate, 90));
   const [, { date: revisionFinal16 }] = computeExtraMonthCheckpoints(extraMonthStartDate);
   const revisionFinal16AtMidnight = atMidnight(revisionFinal16);
 

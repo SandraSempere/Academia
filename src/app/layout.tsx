@@ -1,18 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Montserrat, Lato } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const montserrat = Montserrat({
+// Autoalojadas en vez de next/font/google: el build de Railway dejó de
+// poder llegar a Google Fonts en el momento de compilar (fallaba con
+// "Module not found" en todas las variantes), y next/font/google necesita
+// esa conexión durante el build. Los .woff2 son los mismos que servía
+// Google para el subset latin (única familia usada en la app) — Montserrat
+// es una fuente variable, así que un único archivo cubre 600 y 700.
+const montserrat = localFont({
+  src: "../fonts/montserrat-var-latin.woff2",
   variable: "--font-montserrat",
-  subsets: ["latin"],
-  weight: ["600", "700"],
+  weight: "600 700",
+  display: "swap",
 });
 
-const lato = Lato({
+const lato = localFont({
+  src: [
+    { path: "../fonts/lato-400-latin.woff2", weight: "400" },
+    { path: "../fonts/lato-700-latin.woff2", weight: "700" },
+  ],
   variable: "--font-lato",
-  subsets: ["latin"],
-  weight: ["400", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {

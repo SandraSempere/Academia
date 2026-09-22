@@ -22,6 +22,10 @@ type Row = {
   revision4Date: Date | null;
   revision8Date: Date | null;
   quincenalWeeksSubmitted: Set<number>;
+  // Mes extra (semanas 13-16) — solo existe en el ciclo original, nunca en
+  // la renovación (ver comentario en src/lib/plan-file-categories.ts).
+  extraMonthEnabled?: boolean;
+  extraMonthStartDate?: Date | null;
 };
 
 function RevisionesTable({
@@ -29,12 +33,19 @@ function RevisionesTable({
   revision4Field,
   revision8Field,
   today,
+  showExtraMonth,
 }: {
   rows: Row[];
   revision4Field: string;
   revision8Field: string;
   today: Date;
+  // Añade "Formulario semana 14" y "Revisión final semana 16" al final de
+  // la misma fila en vez de una tabla aparte — el mes extra continúa donde
+  // ya está la paciente, no como un apartado nuevo debajo.
+  showExtraMonth?: boolean;
 }) {
+  const dashColumns = showExtraMonth ? 9 : 7;
+
   return (
     <div className="overflow-x-auto rounded-2xl border border-black/5 bg-blanco-roto">
       <table className="w-full min-w-[1000px] border-collapse text-sm">
@@ -49,6 +60,12 @@ function RevisionesTable({
             <th className="p-3 font-medium text-foreground/50">Revisión semana 8</th>
             <th className="p-3 font-medium text-foreground/50">Formulario semana 10</th>
             <th className="p-3 font-medium text-foreground/50">Revisión final semana 12</th>
+            {showExtraMonth && (
+              <>
+                <th className="p-3 font-medium text-foreground/50">Formulario semana 14</th>
+                <th className="p-3 font-medium text-foreground/50">Revisión final semana 16</th>
+              </>
+            )}
             <th className="p-3 font-medium text-foreground/50">Avisos</th>
           </tr>
         </thead>
@@ -63,7 +80,7 @@ function RevisionesTable({
                     </Link>
                   </td>
                   <td className="p-3 text-foreground/70">{row.email}</td>
-                  {Array.from({ length: 7 }).map((_, i) => (
+                  {Array.from({ length: dashColumns }).map((_, i) => (
                     <td key={i} className="p-3 text-foreground/30">
                       —
                     </td>
@@ -73,7 +90,13 @@ function RevisionesTable({
             }
 
             const checkpoints = computeCheckpoints(row.planStartDate, row.revision4Date, row.revision8Date);
-            const alert = formularioAlert(row.planStartDate, row.revision4Date, row.revision8Date, today);
+            const hasExtraMonth = showExtraMonth && row.extraMonthEnabled && row.extraMonthStartDate;
+            const [extraFormulario14, extraRevisionFinal16] = hasExtraMonth
+              ? computeExtraMonthCheckpoints(row.extraMonthStartDate!)
+              : [null, null];
+            const alert =
+              formularioAlert(row.planStartDate, row.revision4Date, row.revision8Date, today) ??
+              (hasExtraMonth ? extraMonthFormularioAlert(row.extraMonthStartDate!, today) : null);
 
             return (
               <tr
@@ -126,72 +149,29 @@ function RevisionesTable({
                     </td>
                   );
                 })}
-                <td className="p-3">
-                  {alert && (
-                    <span className="whitespace-nowrap rounded-full bg-brand-primary px-2.5 py-1 text-xs font-medium text-white">
-                      {alert}
-                    </span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-type ExtraMonthRow = {
-  id: string;
-  name: string;
-  email: string;
-  extraMonthStartDate: Date | null;
-  formulario14Submitted: boolean;
-};
-
-// El mes extra solo tiene 2 hitos (Formulario semana 14, Revisión final
-// semana 16), así que no reutiliza RevisionesTable (pensada para los 6 de
-// computeCheckpoints, con fechas de revisión editables a mano) — aquí
-// ninguna fecha es editable, igual que "Revisión final semana 12" en la
-// tabla original.
-function ExtraMonthTable({ rows, today }: { rows: ExtraMonthRow[]; today: Date }) {
-  return (
-    <div className="overflow-x-auto rounded-2xl border border-black/5 bg-blanco-roto">
-      <table className="w-full min-w-[700px] border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-black/5 text-left">
-            <th className="p-3 font-medium text-foreground/50">Paciente</th>
-            <th className="p-3 font-medium text-foreground/50">Email</th>
-            <th className="p-3 font-medium text-foreground/50">Inicio mes extra</th>
-            <th className="p-3 font-medium text-foreground/50">Formulario semana 14</th>
-            <th className="p-3 font-medium text-foreground/50">Revisión final semana 16</th>
-            <th className="p-3 font-medium text-foreground/50">Avisos</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            if (!row.extraMonthStartDate) return null;
-            const [formulario14, revisionFinal16] = computeExtraMonthCheckpoints(row.extraMonthStartDate);
-            const alert = extraMonthFormularioAlert(row.extraMonthStartDate, today);
-
-            return (
-              <tr
-                key={row.id}
-                className={`border-b border-black/5 align-top ${alert ? "bg-brand-primary-soft" : ""}`}
-              >
-                <td className="p-3">
-                  <Link href={`/coach/pacientes/${row.id}`} className="font-medium hover:text-brand-primary">
-                    {row.name}
-                  </Link>
-                </td>
-                <td className="p-3 text-foreground/70">{row.email}</td>
-                <td className="p-3 text-foreground/70">{row.extraMonthStartDate.toLocaleDateString("es-ES")}</td>
-                <td className="p-3 text-foreground/70">
-                  {formulario14.date.toLocaleDateString("es-ES")}
-                  {row.formulario14Submitted && <span className="ml-1 text-brand-tertiary">✓</span>}
-                </td>
-                <td className="p-3 text-foreground/70">{revisionFinal16.date.toLocaleDateString("es-ES")}</td>
+                {showExtraMonth && (
+                  <>
+                    <td className="p-3 text-foreground/70">
+                      {extraFormulario14 ? (
+                        <>
+                          {extraFormulario14.date.toLocaleDateString("es-ES")}
+                          {row.quincenalWeeksSubmitted.has(14) && (
+                            <span className="ml-1 text-brand-tertiary">✓</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-foreground/30">—</span>
+                      )}
+                    </td>
+                    <td className="p-3 text-foreground/70">
+                      {extraRevisionFinal16 ? (
+                        extraRevisionFinal16.date.toLocaleDateString("es-ES")
+                      ) : (
+                        <span className="text-foreground/30">—</span>
+                      )}
+                    </td>
+                  </>
+                )}
                 <td className="p-3">
                   {alert && (
                     <span className="whitespace-nowrap rounded-full bg-brand-primary px-2.5 py-1 text-xs font-medium text-white">
@@ -233,6 +213,8 @@ export default async function RevisionesPage() {
         .filter((f) => f.cycle === 1 && f.submittedAt)
         .map((f) => f.week),
     ),
+    extraMonthEnabled: patient.patientProfile?.extraMonthEnabled ?? false,
+    extraMonthStartDate: patient.patientProfile?.extraMonthStartDate ?? null,
   }));
 
   const renewalRows: Row[] = patients
@@ -248,18 +230,6 @@ export default async function RevisionesPage() {
         (patient.patientProfile?.quincenalForms ?? [])
           .filter((f) => f.cycle === 2 && f.submittedAt)
           .map((f) => f.week),
-      ),
-    }));
-
-  const extraMonthRows: ExtraMonthRow[] = patients
-    .filter((patient) => patient.patientProfile?.extraMonthEnabled)
-    .map((patient) => ({
-      id: patient.id,
-      name: patient.name,
-      email: patient.email,
-      extraMonthStartDate: patient.patientProfile?.extraMonthStartDate ?? null,
-      formulario14Submitted: (patient.patientProfile?.quincenalForms ?? []).some(
-        (f) => f.cycle === 1 && f.week === 14 && f.submittedAt,
       ),
     }));
 
@@ -288,6 +258,7 @@ export default async function RevisionesPage() {
           revision4Field="revision4Date"
           revision8Field="revision8Date"
           today={today}
+          showExtraMonth
         />
       )}
 
@@ -310,26 +281,15 @@ export default async function RevisionesPage() {
         </div>
       )}
 
-      {extraMonthRows.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">📋 Revisiones · Mes extra</h2>
-            <p className="mt-1 text-sm text-foreground/70">
-              Pacientes con el mes extra (semanas 13-16) activado — a partir
-              de la fecha en la que lo activaste en su ficha.
-            </p>
-          </div>
-          <ExtraMonthTable rows={extraMonthRows} today={today} />
-        </div>
-      )}
-
       <p className="text-xs text-foreground/50">
         &ldquo;Inicio plan&rdquo; se pone sola la primera vez que subes el
         &ldquo;Plan nutricional 1&rdquo; de cada paciente, en su ficha —
         también crea sola las citas de las revisiones de semana 4, 8 y 12 en
         tu Agenda, a falta de que les pongas hora. El día antes de cada cita
         (y el mismo día a las 9:00h) le llega un recordatorio por email y
-        notificación.
+        notificación. Si activas el mes extra (semanas 13-16) de una
+        paciente, sus dos columnas aparecen al final de su misma fila, sin
+        moverla a ningún sitio aparte.
       </p>
     </div>
   );

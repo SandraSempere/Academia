@@ -819,7 +819,13 @@ export default async function PacienteDetailPage({
         </div>
       )}
 
-      <QuincenalSection patientId={patient.id} forms={quincenalFormsCycle1} cycle={1} title="📅 Revisión quincenal · Semana 2 / 6 / 10" />
+      <QuincenalSection
+        patientId={patient.id}
+        forms={quincenalFormsCycle1}
+        cycle={1}
+        title={`📅 Revisión quincenal · Semana 2 / 6 / 10${patient.patientProfile.extraMonthEnabled ? " / 14" : ""}`}
+        weeks={patient.patientProfile.extraMonthEnabled ? [2, 6, 10, 14] : [2, 6, 10]}
+      />
 
       {patient.patientProfile.renewalEnabled && (
         <QuincenalSection
@@ -830,15 +836,6 @@ export default async function PacienteDetailPage({
         />
       )}
 
-      {patient.patientProfile.extraMonthEnabled && (
-        <QuincenalSection
-          patientId={patient.id}
-          forms={quincenalFormsCycle1}
-          cycle={1}
-          title="📅 Revisión quincenal · Mes extra · Semana 14"
-          weeks={[14]}
-        />
-      )}
 
       <div className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">📔 Registro de comidas y síntomas</h2>

@@ -66,6 +66,9 @@ export default async function ProgresoPage() {
   const mealDiaryByWeekDayRenewal = new Map<string, MealDiaryEntryData>(
     mealDiaryEntries.filter((e) => e.cycle === 2).map((e) => [`${e.week}-${e.day}`, e]),
   );
+  // La semana 14 (mes extra) va dentro de la misma "Revisión quincenal" que
+  // 2/6/10, no en un apartado aparte — mismo dato (cycle 1), un hueco más.
+  const quincenalWeeksCycle1 = profile?.extraMonthEnabled ? [...QUINCENAL_WEEKS, 14] : QUINCENAL_WEEKS;
 
   return (
     <div className="flex flex-col gap-8">
@@ -166,7 +169,7 @@ export default async function ProgresoPage() {
             más productiva.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {QUINCENAL_WEEKS.map((week) => {
+            {quincenalWeeksCycle1.map((week) => {
               const submitted = !!quincenalByWeek.get(week)?.submittedAt;
               return (
                 <Link
@@ -188,7 +191,7 @@ export default async function ProgresoPage() {
             })}
           </div>
           <div className="mt-3 flex flex-col gap-2">
-            {QUINCENAL_WEEKS.map((week) => {
+            {quincenalWeeksCycle1.map((week) => {
               const videoUrl = quincenalByWeek.get(week)?.coachVideoUrl;
               return videoUrl ? (
                 <VideoEmbed key={week} title={`🎥 Vídeo personalizado · Semana ${week}`} url={videoUrl} />
@@ -236,44 +239,6 @@ export default async function ProgresoPage() {
                 ) : null;
               })}
             </div>
-          </details>
-        )}
-
-        {profile?.extraMonthEnabled && (
-          <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
-            <summary className="cursor-pointer font-semibold">
-              📅 Revisión quincenal · Mes extra
-            </summary>
-            <p className="mt-2 text-sm text-foreground/70">
-              Sigues un mes más — esta es tu revisión de la semana 14.
-            </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              {(() => {
-                const week = 14;
-                const submitted = !!quincenalByWeek.get(week)?.submittedAt;
-                return (
-                  <Link
-                    href={`/revision-quincenal/${week}`}
-                    className={`flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium transition-transform hover:-translate-y-0.5 ${
-                      submitted
-                        ? "bg-brand-tertiary-soft text-carbon"
-                        : "bg-brand-primary text-white"
-                    }`}
-                  >
-                    <span>
-                      Semana {week}
-                      {submitted && " ✅"}
-                    </span>
-                    <span>{submitted ? "Ver" : "Rellenar"} →</span>
-                  </Link>
-                );
-              })()}
-            </div>
-            {quincenalByWeek.get(14)?.coachVideoUrl && (
-              <div className="mt-3">
-                <VideoEmbed title="🎥 Vídeo personalizado · Semana 14" url={quincenalByWeek.get(14)!.coachVideoUrl!} />
-              </div>
-            )}
           </details>
         )}
 

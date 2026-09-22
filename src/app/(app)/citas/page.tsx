@@ -109,9 +109,14 @@ export default async function CitasPage() {
       .map((c) => ({ label: c.label, date: c.date, week: c.formWeek as unknown as 2 | 6 | 10 | 14 }));
   }
 
+  // La semana 14 (mes extra) va dentro del mismo listado que 2/6/10, no
+  // como un apartado aparte — mismo dato (cycle 1), un hueco más al final.
   const checkpointsCycle1: FormularioCheckpoint[] = profile?.planStartDate
     ? onlyFormularios(computeCheckpoints(profile.planStartDate, profile.revision4Date, profile.revision8Date))
     : [];
+  if (profile?.extraMonthEnabled) {
+    checkpointsCycle1.push(...onlyFormularios(computeExtraMonthCheckpoints(profile.extraMonthStartDate!)));
+  }
 
   const checkpointsCycle2: FormularioCheckpoint[] =
     profile?.renewalEnabled && profile.renewalPlanStartDate
@@ -119,10 +124,6 @@ export default async function CitasPage() {
           computeCheckpoints(profile.renewalPlanStartDate, profile.renewalRevision4Date, profile.renewalRevision8Date),
         )
       : [];
-
-  const checkpointsExtraMonth: FormularioCheckpoint[] = profile?.extraMonthEnabled
-    ? onlyFormularios(computeExtraMonthCheckpoints(profile.extraMonthStartDate!))
-    : [];
 
   // Solo citas con hora ya puesta por la coach (si sigue en 00:00 es que
   // todavía no la ha coordinado) y que no hayan pasado ya.
@@ -158,12 +159,12 @@ export default async function CitasPage() {
         </Link>
       )}
 
-      {(checkpointsCycle1.length > 0 || checkpointsCycle2.length > 0 || checkpointsExtraMonth.length > 0) && (
+      {(checkpointsCycle1.length > 0 || checkpointsCycle2.length > 0) && (
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">📝 Tus formularios</h2>
           {checkpointsCycle1.length > 0 && (
             <FormularioChecklist
-              title="Semanas 2, 6 y 10"
+              title={`Semanas ${checkpointsCycle1.map((c) => c.week).join(", ")}`}
               checkpoints={checkpointsCycle1}
               isSubmitted={(week) => isSubmitted(1, week)}
               cycle={1}
@@ -175,14 +176,6 @@ export default async function CitasPage() {
               checkpoints={checkpointsCycle2}
               isSubmitted={(week) => isSubmitted(2, week)}
               cycle={2}
-            />
-          )}
-          {checkpointsExtraMonth.length > 0 && (
-            <FormularioChecklist
-              title="Semana 14 · Mes extra"
-              checkpoints={checkpointsExtraMonth}
-              isSubmitted={(week) => isSubmitted(1, week)}
-              cycle={1}
             />
           )}
         </section>

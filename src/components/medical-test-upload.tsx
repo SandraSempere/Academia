@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { uploadMedicalTests } from "@/app/(app)/actions";
 
 type MedicalTestData = {
@@ -9,8 +9,15 @@ type MedicalTestData = {
   uploadedAt: Date | string;
 };
 
+// Un poco por debajo del límite real del servidor (100mb, ver
+// next.config.ts) para avisar con un mensaje claro antes de que el
+// navegador ni siquiera intente mandar la petición, en vez de dejar que
+// falle con un error de red genérico a mitad de la subida.
+const MAX_TOTAL_BYTES = 90 * 1024 * 1024;
+
 export function MedicalTestUpload({ tests }: { tests: MedicalTestData[] }) {
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
@@ -24,8 +31,27 @@ export function MedicalTestUpload({ tests }: { tests: MedicalTestData[] }) {
         ref={formRef}
         action={(formData) =>
           startTransition(async () => {
-            await uploadMedicalTests(formData);
-            formRef.current?.reset();
+            setError(null);
+
+            const files = formData.getAll("files").filter((f): f is File => f instanceof File);
+            const totalBytes = files.reduce((sum, f) => sum + f.size, 0);
+            if (totalBytes > MAX_TOTAL_BYTES) {
+              setError(
+                `Ese conjunto de archivos pesa demasiado (${(totalBytes / (1024 * 1024)).toFixed(0)} MB). Prueba a subirlos en un par de tandas más pequeñas.`,
+              );
+              return;
+            }
+
+            try {
+              await uploadMedicalTests(formData);
+              formRef.current?.reset();
+            } catch (err) {
+              setError(
+                err instanceof Error
+                  ? err.message
+                  : "No se pudo subir. Prueba a subir menos archivos a la vez o inténtalo de nuevo.",
+              );
+            }
           })
         }
         className="flex flex-wrap items-center gap-2"
@@ -46,6 +72,10 @@ export function MedicalTestUpload({ tests }: { tests: MedicalTestData[] }) {
           {pending ? "Subiendo..." : "Subir"}
         </button>
       </form>
+
+      {error && (
+        <p className="rounded-lg bg-brand-primary-soft px-3 py-2 text-xs text-carbon">{error}</p>
+      )}
 
       {tests.length > 0 && (
         <div className="flex flex-col gap-1.5 border-t border-black/5 pt-3">

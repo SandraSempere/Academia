@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { formularioReminder, extraMonthFormularioReminder } from "@/lib/revisiones";
-import { sendPatientFormReminderEmail } from "@/lib/email";
+import { sendPatientFormReminderEmail, sendCelebrationFormReminderEmail } from "@/lib/email";
 import { notifyPatient } from "@/lib/notify";
 
 function reminderPush(week: 2 | 6 | 10 | 14, when: "hoy" | "mañana", cycle: 1 | 2) {
@@ -9,6 +9,18 @@ function reminderPush(week: 2 | 6 | 10 | 14, when: "hoy" | "mañana", cycle: 1 |
   const body = `Semana ${week}${cycleSuffix} — ${when === "hoy" ? "es hoy" : "es mañana"}.`;
   const url = cycle === 2 ? `/revision-quincenal/${week}?cycle=2` : `/revision-quincenal/${week}`;
   return { title, body, url };
+}
+
+// Mismo aviso "hoy/mañana" que el formulario quincenal de la semana 6, pero
+// para "Mi momento de celebración" (dentro de Mi progreso) — un ejercicio de
+// una sola vez, no depende del ciclo, así que solo se comprueba junto al
+// ciclo original (no se repite en la renovación).
+function celebrationReminderPush(when: "hoy" | "mañana") {
+  return {
+    title: "🎉 Mi momento de celebración",
+    body: `Semana 6 — ${when === "hoy" ? "es hoy" : "es mañana"}. Lo encuentras dentro de Mi progreso.`,
+    url: "/mi-momento-de-celebracion",
+  };
 }
 
 // Comprobación diaria: a qué pacientes les toca (mañana o hoy) rellenar su
@@ -33,7 +45,7 @@ export async function GET(request: Request) {
 
   const patients = await prisma.patientProfile.findMany({
     where: { OR: [{ planStartDate: { not: null } }, { renewalEnabled: true }, { extraMonthEnabled: true }] },
-    include: { user: true, quincenalForms: true },
+    include: { user: true, quincenalForms: true, celebrationForm: true },
   });
 
   const today = new Date();
@@ -53,25 +65,43 @@ export async function GET(request: Request) {
       const due = formularioReminder(planStartDate, profile[r4Field], profile[r8Field], today);
       if (!due) continue;
 
-      const existing = profile.quincenalForms.find((f) => f.cycle === cycle && f.week === due.week);
-      if (existing?.submittedAt) continue;
-
       const sentField = due.when === "hoy" ? "reminderSentAt" : "reminderSentDayBeforeAt";
-      if (existing?.[sentField]) continue;
+      const existing = profile.quincenalForms.find((f) => f.cycle === cycle && f.week === due.week);
 
-      await prisma.quincenalForm.upsert({
-        where: { patientProfileId_cycle_week: { patientProfileId: profile.id, cycle, week: due.week } },
-        create: { patientProfileId: profile.id, cycle, week: due.week, answers: {}, [sentField]: today },
-        update: { [sentField]: today },
-      });
+      if (!existing?.submittedAt && !existing?.[sentField]) {
+        await prisma.quincenalForm.upsert({
+          where: { patientProfileId_cycle_week: { patientProfileId: profile.id, cycle, week: due.week } },
+          create: { patientProfileId: profile.id, cycle, week: due.week, answers: {}, [sentField]: today },
+          update: { [sentField]: today },
+        });
 
-      await notifyPatient(
-        profile.id,
-        reminderPush(due.week, due.when, cycle),
-        () => sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, cycle, profile.id),
-        "quincenal_reminder",
-      );
-      remindersSent++;
+        await notifyPatient(
+          profile.id,
+          reminderPush(due.week, due.when, cycle),
+          () => sendPatientFormReminderEmail(profile.user.email, profile.user.name ?? "", due.week, due.when, cycle, profile.id),
+          "quincenal_reminder",
+        );
+        remindersSent++;
+      }
+
+      // "Mi momento de celebración" coincide con la semana 6 del ciclo
+      // original — es un ejercicio de una sola vez, así que no se repite
+      // si ya llega la semana 6 de la renovación (cycle === 2).
+      if (cycle === 1 && due.week === 6 && !profile.celebrationForm?.submittedAt && !profile.celebrationForm?.[sentField]) {
+        await prisma.celebrationForm.upsert({
+          where: { patientProfileId: profile.id },
+          create: { patientProfileId: profile.id, [sentField]: today },
+          update: { [sentField]: today },
+        });
+
+        await notifyPatient(
+          profile.id,
+          celebrationReminderPush(due.when),
+          () => sendCelebrationFormReminderEmail(profile.user.email, profile.user.name ?? "", due.when, profile.id),
+          "celebration_reminder",
+        );
+        remindersSent++;
+      }
     }
 
     // Mes extra — solo 1 hito (semana 14), no encaja en el bucle de arriba

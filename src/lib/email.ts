@@ -196,6 +196,47 @@ Sandra`;
   );
 }
 
+// Recordatorio a la paciente de que le toca "Mi momento de celebración"
+// (semana 6, dentro de Mi progreso) — mismo patrón que
+// sendPatientFormReminderEmail (día antes y día exacto), pero es un
+// ejercicio de una sola vez, no depende del ciclo (renovación incluida).
+export async function sendCelebrationFormReminderEmail(
+  to: string,
+  name: string,
+  when: "hoy" | "mañana",
+  patientProfileId?: string,
+) {
+  const subject =
+    when === "hoy"
+      ? "Hoy toca tu Momento de celebración 🎉"
+      : "Mañana toca tu Momento de celebración 🎉";
+  const text =
+    when === "hoy"
+      ? `¡Hola ${name}!
+
+Hoy es un buen día para pararte un momento y hacer tu "Momento de celebración" de la semana 6 — lo encuentras dentro de Mi progreso, en tu espacio de Origen Digestivo.
+
+Es un ratito para mirar atrás y ver todo lo que ya ha cambiado, aunque sea pequeño.
+
+Un abrazo,
+Sandra`
+      : `¡Hola ${name}!
+
+Mañana te toca tu "Momento de celebración" de la semana 6 — lo encontrarás dentro de Mi progreso, en tu espacio de Origen Digestivo.
+
+Aprovecha para pensar en cómo estabas cuando empezaste y qué ha cambiado desde entonces, aunque sea algo pequeño.
+
+Nos vemos ahí 🌿
+Sandra`;
+
+  await sendEmail(
+    to,
+    subject,
+    text,
+    patientProfileId ? { patientProfileId, category: "celebration_reminder" } : {},
+  );
+}
+
 // Recordatorio a la paciente de su próxima cita de revisión (semana
 // 4/8/12, renovación o la final del mes extra) — mismo texto el día antes
 // y el mismo día (ya incluye la fecha y hora exactas, así que no hace

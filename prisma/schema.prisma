@@ -343,6 +343,8 @@ model CelebrationForm {
   whatCanYouDoNow     String? // "¿Qué puedes hacer ahora que antes no podías o evitabas?"
   howWillYouCelebrate String? // "¿Qué vas a hacer esta semana para celebrarlo?"
   submittedAt         DateTime?
+  reminderSentAt          DateTime? // recordatorio del día exacto (semana 6) ya enviado (evita reenviarlo)
+  reminderSentDayBeforeAt DateTime? // recordatorio del día antes ya enviado (evita reenviarlo, aparte del anterior)
   updatedAt           DateTime       @updatedAt
 }
 

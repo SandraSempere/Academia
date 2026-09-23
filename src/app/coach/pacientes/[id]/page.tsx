@@ -276,9 +276,14 @@ export default async function PacienteDetailPage({
 
           {patient.patientProfile.extraMonthEnabled ? (
             <span className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs font-medium text-carbon">
-              ✅ Mes extra activo desde{" "}
-              {patient.patientProfile.extraMonthStartDate &&
-                new Date(patient.patientProfile.extraMonthStartDate).toLocaleDateString("es-ES")}
+              {patient.patientProfile.extraMonthStartDate ? (
+                <>
+                  ✅ Mes extra activo desde{" "}
+                  {new Date(patient.patientProfile.extraMonthStartDate).toLocaleDateString("es-ES")}
+                </>
+              ) : (
+                "✅ Mes extra programado · se calculará al fijar el inicio del plan"
+              )}
             </span>
           ) : (
             <form action={enableExtraMonth}>

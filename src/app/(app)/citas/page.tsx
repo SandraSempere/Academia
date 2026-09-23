@@ -114,8 +114,8 @@ export default async function CitasPage() {
   const checkpointsCycle1: FormularioCheckpoint[] = profile?.planStartDate
     ? onlyFormularios(computeCheckpoints(profile.planStartDate, profile.revision4Date, profile.revision8Date))
     : [];
-  if (profile?.extraMonthEnabled) {
-    checkpointsCycle1.push(...onlyFormularios(computeExtraMonthCheckpoints(profile.extraMonthStartDate!)));
+  if (profile?.extraMonthEnabled && profile.extraMonthStartDate) {
+    checkpointsCycle1.push(...onlyFormularios(computeExtraMonthCheckpoints(profile.extraMonthStartDate)));
   }
 
   const checkpointsCycle2: FormularioCheckpoint[] =

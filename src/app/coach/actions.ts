@@ -402,6 +402,13 @@ export async function uploadPatientPlanFile(formData: FormData) {
       ],
     });
 
+    // Si el mes extra ya se activó desde el alta (antes de saber cuándo
+    // caería la semana 12), sus fechas se quedaron sin calcular hasta
+    // ahora — ya se puede.
+    if (profile.extraMonthEnabled && !profile.extraMonthStartDate) {
+      await applyExtraMonthDates(profile.id, planStartDate);
+    }
+
     revalidatePath("/coach/agenda");
   }
 
@@ -552,6 +559,34 @@ export async function enableRenewal(formData: FormData) {
 // enableRenewal (se activa a mano, nunca sola), pero solo genera 1 hito
 // (revisión final semana 16) porque el formulario semana 14 no crea cita en
 // la Agenda — ninguno de los formularios semana 2/6/10 la crea tampoco.
+// El mes extra (semanas 13-16) se cuenta desde la Revisión final semana 12
+// (planStartDate + 90 días, igual que en computeCheckpoints) — no desde el
+// momento en que la coach activa el mes extra ni desde cuándo se sepa esa
+// fecha. Compartida entre enableExtraMonth (planStartDate ya conocido) y
+// uploadPatientPlanFile (si se activó antes de saber planStartDate, se
+// calcula solo en cuanto se fija, al subir el primer Plan nutricional).
+async function applyExtraMonthDates(profileId: string, planStartDate: Date) {
+  const extraMonthStartDate = atMidnight(addDays(planStartDate, 90));
+  const [, { date: revisionFinal16 }] = computeExtraMonthCheckpoints(extraMonthStartDate);
+  const revisionFinal16AtMidnight = atMidnight(revisionFinal16);
+
+  await prisma.patientProfile.update({
+    where: { id: profileId },
+    data: { extraMonthEnabled: true, extraMonthStartDate },
+  });
+
+  await prisma.appointment.upsert({
+    where: { patientProfileId_source: { patientProfileId: profileId, source: "extra_month_revision_final" } },
+    create: {
+      patientProfileId: profileId,
+      date: revisionFinal16AtMidnight,
+      source: "extra_month_revision_final",
+      notes: "Revisión final semana 16",
+    },
+    update: { date: revisionFinal16AtMidnight },
+  });
+}
+
 export async function enableExtraMonth(formData: FormData) {
   await requireCoach();
 
@@ -559,32 +594,22 @@ export async function enableExtraMonth(formData: FormData) {
   const profile = await prisma.patientProfile.findUnique({ where: { userId } });
   if (!profile) throw new Error("Paciente no encontrada");
   if (profile.extraMonthEnabled) return;
-  if (!profile.planStartDate) throw new Error("Esta paciente todavía no tiene fecha de inicio de plan");
 
-  // El mes extra (semanas 13-16) se cuenta desde la Revisión final semana
-  // 12 (planStartDate + 90 días, igual que en computeCheckpoints) — no
-  // desde el momento en que la coach pulsa este botón, que puede ser unos
-  // días antes o después de esa revisión.
-  const extraMonthStartDate = atMidnight(addDays(profile.planStartDate, 90));
-  const [, { date: revisionFinal16 }] = computeExtraMonthCheckpoints(extraMonthStartDate);
-  const revisionFinal16AtMidnight = atMidnight(revisionFinal16);
-
-  await prisma.patientProfile.update({
-    where: { id: profile.id },
-    data: { extraMonthEnabled: true, extraMonthStartDate },
-  });
-
-  await prisma.appointment.create({
-    data: {
-      patientProfileId: profile.id,
-      date: revisionFinal16AtMidnight,
-      source: "extra_month_revision_final",
-      notes: "Revisión final semana 16",
-    },
-  });
+  if (!profile.planStartDate) {
+    // Se puede activar desde el alta, antes de saber cuándo cae su semana
+    // 12 — se marca la intención ahora (extraMonthStartDate se queda sin
+    // fijar) y las fechas se calculan solas en cuanto subas su primer Plan
+    // nutricional.
+    await prisma.patientProfile.update({
+      where: { id: profile.id },
+      data: { extraMonthEnabled: true },
+    });
+  } else {
+    await applyExtraMonthDates(profile.id, profile.planStartDate);
+    revalidatePath("/coach/agenda");
+  }
 
   revalidatePath(`/coach/pacientes/${userId}`);
-  revalidatePath("/coach/agenda");
   revalidatePath("/coach/revisiones");
   revalidatePath("/coach");
 }

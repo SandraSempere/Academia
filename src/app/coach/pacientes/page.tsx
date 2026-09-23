@@ -1,8 +1,12 @@
 import Link from "next/link";
-import { getPatientsWithStatus, getProgressSummary } from "@/lib/patient";
+import { getPatientsWithStatus, getProgressSummary, patientDisplayName } from "@/lib/patient";
 import { PatientSearch } from "@/components/patient-search";
 
 export const dynamic = "force-dynamic";
+
+function byName(a: { name: string }, b: { name: string }) {
+  return a.name.localeCompare(b.name, "es");
+}
 
 export default async function PacientesPage() {
   const { activas, finalizadas } = await getPatientsWithStatus();
@@ -11,7 +15,7 @@ export default async function PacientesPage() {
     Promise.all(
       activas.map(async (patient) => ({
         id: patient.id,
-        name: patient.name,
+        name: patientDisplayName(patient),
         email: patient.email,
         blocked: patient.blocked,
         progress: patient.patientProfile
@@ -22,7 +26,7 @@ export default async function PacientesPage() {
     Promise.all(
       finalizadas.map(async (patient) => ({
         id: patient.id,
-        name: patient.name,
+        name: patientDisplayName(patient),
         email: patient.email,
         blocked: patient.blocked,
         progress: patient.patientProfile
@@ -31,6 +35,13 @@ export default async function PacientesPage() {
       })),
     ),
   ]);
+
+  // El nombre a mostrar (nombre + primer apellido tras el Formulario de
+  // síntomas) puede no coincidir con el "name" suelto por el que ya viene
+  // ordenado getPatientsWithStatus — se reordena aquí para que el orden
+  // alfabético sea sobre lo que realmente se ve en pantalla.
+  activasConProgreso.sort(byName);
+  finalizadasConProgreso.sort(byName);
 
   return (
     <div className="flex flex-col gap-8">

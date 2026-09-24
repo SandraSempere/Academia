@@ -21,6 +21,9 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
             <Link href="/coach/revisiones" className="text-sm text-foreground/70 hover:text-brand-primary">
               Revisiones
             </Link>
+            <Link href="/coach/analiticas" className="text-sm text-foreground/70 hover:text-brand-primary">
+              Analíticas
+            </Link>
             <Link href="/coach/recursos" className="text-sm text-foreground/70 hover:text-brand-primary">
               Recursos
             </Link>

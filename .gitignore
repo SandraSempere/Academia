@@ -45,10 +45,14 @@ next-env.d.ts
 
 # base de datos local (en producción vive en el volumen persistente, no en el
 # repo) y archivos subidos por paciente (privados — también van al volumen).
+# En cualquier subcarpeta también, por si el CWD desde el que se ejecuta
+# Prisma cambia (p.ej. prisma/dev.db en vez de ./dev.db).
 /dev.db
 /dev.db-journal
 /*.db
 /*.db-journal
+**/dev.db
+**/dev.db-journal
 /public/uploads/planes/
 
 # Los PDFs de recursos ya no se commitean aquí directamente (ver

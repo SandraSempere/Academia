@@ -205,6 +205,21 @@ export function extraMonthFormularioWeekOverdue(extraMonthStartDate: Date | null
 
 // "Falta por poner hora": la cita se creó sola con hora 00:00 como marcador
 // de "todavía sin coordinar con la paciente".
+// Semana actual del proceso de una paciente, para el panel de analíticas
+// (/coach/analiticas) — respeta si tiene el mes extra activado (el
+// programa pasa de 12 a 16 semanas) o no. Se calcula siempre desde
+// planStartDate de forma continua (no reinicia el contador al activar el
+// mes extra) y se limita entre 1 y el total, para que una paciente que
+// lleve más tiempo del previsto sin cerrar el programa no salga "semana
+// 20 de 12".
+export function currentProgramWeek(planStartDate: Date, today: Date, totalWeeks: 12 | 16): number {
+  const daysSince = Math.floor(
+    (atMidnight(today).getTime() - atMidnight(planStartDate).getTime()) / (1000 * 60 * 60 * 24),
+  );
+  const week = Math.floor(daysSince / 7) + 1;
+  return Math.min(Math.max(week, 1), totalWeeks);
+}
+
 export function isTimeTbd(date: Date) {
   return date.getHours() === 0 && date.getMinutes() === 0;
 }

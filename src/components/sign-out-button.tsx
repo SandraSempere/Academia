@@ -14,7 +14,7 @@ export function SignOutButton() {
         await signOut({ redirect: false });
         window.location.href = "/login";
       }}
-      className="text-sm text-foreground/60 hover:text-foreground"
+      className="whitespace-nowrap text-sm text-foreground/60 hover:text-foreground"
     >
       Cerrar sesión
     </button>

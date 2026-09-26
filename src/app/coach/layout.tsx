@@ -11,29 +11,29 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
             <img src="/logo.svg" alt="Sandra Sempere" className="h-10 w-auto" />
             <span className="text-sm text-foreground/60">Panel</span>
           </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/coach/pacientes" className="text-sm text-foreground/70 hover:text-brand-primary">
+          <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+            <Link href="/coach/pacientes" className="whitespace-nowrap text-sm text-foreground/70 hover:text-brand-primary">
               Pacientes
             </Link>
-            <Link href="/coach/agenda" className="text-sm text-foreground/70 hover:text-brand-primary">
+            <Link href="/coach/agenda" className="whitespace-nowrap text-sm text-foreground/70 hover:text-brand-primary">
               Agenda
             </Link>
-            <Link href="/coach/revisiones" className="text-sm text-foreground/70 hover:text-brand-primary">
+            <Link href="/coach/revisiones" className="whitespace-nowrap text-sm text-foreground/70 hover:text-brand-primary">
               Revisiones
             </Link>
-            <Link href="/coach/analiticas" className="text-sm text-foreground/70 hover:text-brand-primary">
+            <Link href="/coach/analiticas" className="whitespace-nowrap text-sm text-foreground/70 hover:text-brand-primary">
               Analíticas
             </Link>
-            <Link href="/coach/avisos" className="text-sm text-foreground/70 hover:text-brand-primary">
+            <Link href="/coach/avisos" className="whitespace-nowrap text-sm text-foreground/70 hover:text-brand-primary">
               Aviso masivo
             </Link>
-            <Link href="/coach/recursos" className="text-sm text-foreground/70 hover:text-brand-primary">
+            <Link href="/coach/recursos" className="whitespace-nowrap text-sm text-foreground/70 hover:text-brand-primary">
               Recursos
             </Link>
-            <Link href="/coach/backup" className="text-sm text-foreground/70 hover:text-brand-primary">
+            <Link href="/coach/backup" className="whitespace-nowrap text-sm text-foreground/70 hover:text-brand-primary">
               Copia de seguridad
             </Link>
-            <Link href="/cambiar-contrasena" className="text-sm text-foreground/70 hover:text-brand-primary">
+            <Link href="/cambiar-contrasena" className="whitespace-nowrap text-sm text-foreground/70 hover:text-brand-primary">
               🔑 Contraseña
             </Link>
             <SignOutButton />

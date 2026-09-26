@@ -376,3 +376,23 @@ Un abrazo,
 Sandra`;
   await sendEmail(to, "Tu revisión ya está lista 🎥", text, { patientProfileId, category: "quincenal_video" });
 }
+
+// Aviso masivo escrito a mano por Sandra desde /coach/avisos (asunto y
+// cuerpo libres, a diferencia del resto de emails de este archivo, que
+// llevan siempre el mismo texto fijo) — mismo saludo/firma que el resto
+// para que no se note que es un envío distinto de los automáticos.
+export async function sendCoachBroadcastEmail(
+  to: string,
+  name: string,
+  subject: string,
+  body: string,
+  patientProfileId: string,
+) {
+  const text = `¡Hola ${name}!
+
+${body}
+
+Un abrazo,
+Sandra`;
+  await sendEmail(to, subject, text, { patientProfileId, category: "coach_broadcast" });
+}

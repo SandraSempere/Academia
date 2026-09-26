@@ -516,7 +516,7 @@ model NotificationLog {
   patientProfileId String
   patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
   channel          String // "push" | "email"
-  category         String // "plan_file_upload" | "plan_file_digest" | "plan_file_reintroduccion" | "appointment_reminder" | "quincenal_reminder" | "quincenal_video" | "welcome" | "test_push"
+  category         String // "plan_file_upload" | "plan_file_digest" | "plan_file_reintroduccion" | "appointment_reminder" | "quincenal_reminder" | "celebration_reminder" | "quincenal_video" | "welcome" | "coach_broadcast" | "test_push"
   title            String // asunto del email, o título de la notificación push
   status           String // push: "delivered" | "no_subscription" | "failed" — email: "sent" | "failed" | "delivered" | "opened" | "bounced" | "complained"
   resendId         String? // solo para channel "email", para casar los eventos del webhook

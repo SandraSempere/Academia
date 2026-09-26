@@ -4,6 +4,7 @@ import { getCurrentPatientProfile } from "@/lib/patient";
 import { computeCheckpoints } from "@/lib/revisiones";
 import { LessonItem } from "@/components/lesson-item";
 import { ResourceCard } from "@/components/resource-card";
+import { AcademiaSearch } from "@/components/academia-search";
 
 // El Módulo 4 (order 4) se bloquea hasta la semana 10 del proceso — misma
 // fecha que "Formulario semana 10" en /coach/revisiones y en Mi progreso,
@@ -84,6 +85,20 @@ const RESOURCE_BELOW_LESSON: Record<string, string[]> = {
   "Cómo organizar tus comidas": ["Plato Harvard", "Batch cooking · organiza tu semana"],
 };
 
+function buildModuleSearchText(module: {
+  title: string;
+  lessons: { title: string; body: string | null }[];
+  resources: { title: string; description: string | null }[];
+}) {
+  return [
+    module.title,
+    ...module.lessons.flatMap((l) => [l.title, l.body ?? ""]),
+    ...module.resources.flatMap((r) => [r.title, r.description ?? ""]),
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
 export default async function AcademiaPage() {
   const [modules, profile] = await Promise.all([
     prisma.module.findMany({
@@ -119,7 +134,7 @@ export default async function AcademiaPage() {
         </p>
       )}
 
-      <div className="flex flex-col gap-4">
+      <AcademiaSearch searchIndex={modules.map((module) => ({ id: module.id, text: buildModuleSearchText(module) }))}>
         {modules.map((module) => {
           const resourceByTitle = new Map(module.resources.map((r) => [r.title, r]));
           const endOfModuleResources = END_OF_MODULE_RESOURCES.map((title) =>
@@ -282,7 +297,7 @@ export default async function AcademiaPage() {
             </details>
           );
         })}
-      </div>
+      </AcademiaSearch>
     </div>
   );
 }

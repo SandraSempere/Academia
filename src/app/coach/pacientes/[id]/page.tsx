@@ -729,6 +729,13 @@ export default async function PacienteDetailPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`/api/coach/informe-completo-pdf/${patient.id}`}
+            className="rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+          >
+            📄 Informe completo (PDF)
+          </a>
+
           {patient.patientProfile.termsAcceptedAt ? (
             <span className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs font-medium text-carbon">
               ✅ Aceptó los términos el{" "}

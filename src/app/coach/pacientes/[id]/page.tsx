@@ -26,6 +26,7 @@ import { CommitmentFormSummary } from "@/components/commitment-form-summary";
 import { MealDiarySummary } from "@/components/meal-diary-summary";
 import { NotificationHistory } from "@/components/notification-history";
 import { ProgramTimeline } from "@/components/program-timeline";
+import { PatientDetailTabs } from "@/components/patient-detail-tabs";
 import { PERSONAL_FIELDS } from "@/lib/symptom-form-fields";
 import type { MealDiaryEntryData } from "@/lib/meal-diary-fields";
 
@@ -230,244 +231,8 @@ export default async function PacienteDetailPage({
   const quincenalFormsCycle1 = quincenalForms.filter((f) => f.cycle === 1);
   const quincenalFormsCycle2 = quincenalForms.filter((f) => f.cycle === 2);
 
-  return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">
-            {patient.name}
-            {patient.blocked && (
-              <span className="ml-2 rounded-full bg-brand-primary-soft px-2.5 py-1 text-xs font-medium text-brand-primary align-middle">
-                🔒 Bloqueada
-              </span>
-            )}
-          </h1>
-          <p className="text-sm text-foreground/60">{patient.email}</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {patient.patientProfile.termsAcceptedAt ? (
-            <span className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs font-medium text-carbon">
-              ✅ Aceptó los términos el{" "}
-              {new Date(patient.patientProfile.termsAcceptedAt).toLocaleDateString("es-ES")}
-            </span>
-          ) : (
-            <span className="rounded-full bg-black/5 px-3 py-1.5 text-xs font-medium text-foreground/60">
-              ⏳ Aún no ha aceptado los términos
-            </span>
-          )}
-          {patient.patientProfile.renewalEnabled ? (
-            <span className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs font-medium text-carbon">
-              ✅ Renovación activa desde{" "}
-              {patient.patientProfile.renewalPlanStartDate &&
-                new Date(patient.patientProfile.renewalPlanStartDate).toLocaleDateString("es-ES")}
-            </span>
-          ) : (
-            <form action={enableRenewal}>
-              <input type="hidden" name="userId" value={patient.id} />
-              <button
-                type="submit"
-                className="rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-              >
-                🔁 Habilitar renovación (12 semanas más)
-              </button>
-            </form>
-          )}
-
-          {patient.patientProfile.extraMonthEnabled ? (
-            <span className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs font-medium text-carbon">
-              {patient.patientProfile.extraMonthStartDate ? (
-                <>
-                  ✅ Mes extra activo desde{" "}
-                  {new Date(patient.patientProfile.extraMonthStartDate).toLocaleDateString("es-ES")}
-                </>
-              ) : (
-                "✅ Mes extra programado · se calculará al fijar el inicio del plan"
-              )}
-            </span>
-          ) : (
-            <form action={enableExtraMonth}>
-              <input type="hidden" name="userId" value={patient.id} />
-              <button
-                type="submit"
-                className="rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-              >
-                ➕ Habilitar 1 mes extra (semanas 13-16)
-              </button>
-            </form>
-          )}
-
-          <form action={patient.blocked ? unblockPatient : blockPatient}>
-            <input type="hidden" name="userId" value={patient.id} />
-            <button
-              type="submit"
-              className="rounded-full border border-black/10 bg-blanco-roto px-3 py-1.5 text-xs font-medium hover:border-brand-primary"
-            >
-              {patient.blocked ? "🔓 Desbloquear acceso" : "🔒 Bloquear acceso"}
-            </button>
-          </form>
-
-          <details className="relative">
-            <summary className="cursor-pointer list-none rounded-full border border-black/10 bg-blanco-roto px-3 py-1.5 text-xs font-medium hover:border-brand-primary">
-              🔑 Restablecer contraseña
-            </summary>
-            <form
-              action={resetPatientPassword}
-              className="absolute right-0 z-10 mt-2 flex w-64 flex-col gap-2 rounded-2xl border border-black/5 bg-blanco-roto p-4 shadow-md"
-            >
-              <input type="hidden" name="userId" value={patient.id} />
-              <label className="flex flex-col gap-1 text-xs">
-                Contraseña provisional nueva
-                <input
-                  name="password"
-                  type="text"
-                  required
-                  minLength={8}
-                  placeholder="Mínimo 8 caracteres"
-                  className="rounded-lg border border-black/10 px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
-                />
-              </label>
-              <p className="text-xs text-foreground/50">
-                Se la das a la paciente para que vuelva a entrar — le pedirá
-                elegir la suya al hacerlo.
-              </p>
-              <button
-                type="submit"
-                className="self-start rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-              >
-                Guardar
-              </button>
-            </form>
-          </details>
-
-          {pushSubscriptionCount > 0 && (
-            <form action={sendTestPush}>
-              <input type="hidden" name="userId" value={patient.id} />
-              <button
-                type="submit"
-                className="rounded-full border border-black/10 bg-blanco-roto px-3 py-1.5 text-xs font-medium hover:border-brand-primary"
-                title={`${pushSubscriptionCount} dispositivo(s) suscrito(s)`}
-              >
-                🔔 Enviar notificación de prueba
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-
-      <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
-        <summary className="cursor-pointer font-semibold">🩺 Historial clínico</summary>
-
-        {clinicalNotes.length > 0 && (
-          <a
-            href={`/api/coach/historial-clinico-pdf/${patient.id}`}
-            className="mt-3 inline-block rounded-full bg-brand-primary px-4 py-1.5 text-sm font-medium text-white hover:opacity-90"
-          >
-            ⬇️ Descargar en PDF
-          </a>
-        )}
-
-        <form action={addClinicalNote} className="mt-4 flex flex-col gap-2 rounded-xl bg-crema p-3">
-          <input type="hidden" name="userId" value={patient.id} />
-          <label className="flex flex-col gap-1 text-xs">
-            Fecha
-            <input
-              name="date"
-              type="date"
-              required
-              defaultValue={toDateInputValue(new Date())}
-              className="w-40 rounded-lg border border-black/10 px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs">
-            Apunte
-            <textarea
-              name="text"
-              required
-              rows={3}
-              placeholder="Lo que le escribió por WhatsApp, algo que comentó en consulta..."
-              className="rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-primary"
-            />
-          </label>
-          <button
-            type="submit"
-            className="self-start rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
-          >
-            Añadir al historial
-          </button>
-        </form>
-
-        <div className="mt-4 flex flex-col gap-3">
-          {clinicalNotes.length === 0 ? (
-            <p className="text-sm text-foreground/60">Todavía no hay ningún apunte.</p>
-          ) : (
-            clinicalNotes.map((note) => (
-              <div key={note.id} className="rounded-lg bg-crema p-3 text-sm">
-                <p className="text-xs font-medium text-brand-secondary">
-                  {new Date(note.date).toLocaleDateString("es-ES", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </p>
-                <p className="mt-1 whitespace-pre-wrap text-foreground/80">{note.text}</p>
-              </div>
-            ))
-          )}
-        </div>
-      </details>
-
-      <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
-        <summary className="cursor-pointer font-semibold">🔔 Historial de avisos</summary>
-        <p className="mt-1 text-xs text-foreground/50">
-          Cada vez que le llega un email o una notificación push (documentos de plan, recordatorios,
-          vídeos de revisión...). El email pasa de &ldquo;Enviado&rdquo; a &ldquo;Entregado&rdquo;/&ldquo;Abierto&rdquo;
-          más tarde, si tienes activado el webhook de Resend.
-        </p>
-        <NotificationHistory logs={notificationLogs} />
-      </details>
-
-      {symptomForm && (
-        <div className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
-          <p className="font-semibold">🪪 Ficha de la paciente</p>
-          <p className="text-xs text-foreground/50">
-            Rellenado por ella en el formulario de síntomas
-            {symptomForm.submittedAt && (
-              <> · {new Date(symptomForm.submittedAt).toLocaleDateString("es-ES")}</>
-            )}
-          </p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {PERSONAL_FIELDS.map((field) => {
-              const value = symptomForm[field.id as keyof typeof symptomForm];
-              if (value === null || value === undefined || value === "") return null;
-              return (
-                <div key={field.id} className="text-sm">
-                  <span className="text-foreground/50">{field.label}: </span>
-                  <span>{String(value)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium">Progreso</span>
-          <span className="text-foreground/60">
-            {progress.completedItems} / {progress.totalItems} pasos ·{" "}
-            {progress.percent}%
-          </span>
-        </div>
-        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-black/5">
-          <div
-            className="h-full rounded-full bg-brand-tertiary"
-            style={{ width: `${progress.percent}%` }}
-          />
-        </div>
-      </div>
-
+  const pacienteTab = (
+    <>
       <ProgramTimeline
         userId={patient.id}
         title="Control del programa"
@@ -701,7 +466,11 @@ export default async function PacienteDetailPage({
           </div>
         )}
       </details>
+    </>
+  );
 
+  const subidasTab = (
+    <>
       <div className="flex flex-col gap-4">
         {PLAN_FILE_SECTIONS.map((section) => (
           <div key={section.category} className="flex flex-col gap-2">
@@ -823,7 +592,11 @@ export default async function PacienteDetailPage({
           </div>
         </div>
       )}
+    </>
+  );
 
+  const revisionQuincenalTab = (
+    <>
       <QuincenalSection
         patientId={patient.id}
         forms={quincenalFormsCycle1}
@@ -840,8 +613,11 @@ export default async function PacienteDetailPage({
           title="📅 Revisión quincenal · Renovación · Semana 2 / 6 / 10"
         />
       )}
+    </>
+  );
 
-
+  const registroComidasTab = (
+    <>
       <div className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">📔 Registro de comidas y síntomas</h2>
         <MealDiarySummary
@@ -860,6 +636,258 @@ export default async function PacienteDetailPage({
           <MealDiarySummary entries={mealDiaryByWeekDayRenewal} />
         </div>
       )}
+    </>
+  );
+
+  const historialClinicoTab = (
+    <div className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+      {clinicalNotes.length > 0 && (
+        <a
+          href={`/api/coach/historial-clinico-pdf/${patient.id}`}
+          className="inline-block rounded-full bg-brand-primary px-4 py-1.5 text-sm font-medium text-white hover:opacity-90"
+        >
+          ⬇️ Descargar en PDF
+        </a>
+      )}
+
+      <form action={addClinicalNote} className="mt-4 flex flex-col gap-2 rounded-xl bg-crema p-3">
+        <input type="hidden" name="userId" value={patient.id} />
+        <label className="flex flex-col gap-1 text-xs">
+          Fecha
+          <input
+            name="date"
+            type="date"
+            required
+            defaultValue={toDateInputValue(new Date())}
+            className="w-40 rounded-lg border border-black/10 px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          Apunte
+          <textarea
+            name="text"
+            required
+            rows={3}
+            placeholder="Lo que le escribió por WhatsApp, algo que comentó en consulta..."
+            className="rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-brand-primary"
+          />
+        </label>
+        <button
+          type="submit"
+          className="self-start rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+        >
+          Añadir al historial
+        </button>
+      </form>
+
+      <div className="mt-4 flex flex-col gap-3">
+        {clinicalNotes.length === 0 ? (
+          <p className="text-sm text-foreground/60">Todavía no hay ningún apunte.</p>
+        ) : (
+          clinicalNotes.map((note) => (
+            <div key={note.id} className="rounded-lg bg-crema p-3 text-sm">
+              <p className="text-xs font-medium text-brand-secondary">
+                {new Date(note.date).toLocaleDateString("es-ES", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-foreground/80">{note.text}</p>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  const historialAvisosTab = (
+    <div className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+      <p className="text-xs text-foreground/50">
+        Cada vez que le llega un email o una notificación push (documentos de plan, recordatorios,
+        vídeos de revisión...). El email pasa de &ldquo;Enviado&rdquo; a &ldquo;Entregado&rdquo;/&ldquo;Abierto&rdquo;
+        más tarde, si tienes activado el webhook de Resend.
+      </p>
+      <NotificationHistory logs={notificationLogs} />
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">
+            {patient.name}
+            {patient.blocked && (
+              <span className="ml-2 rounded-full bg-brand-primary-soft px-2.5 py-1 text-xs font-medium text-brand-primary align-middle">
+                🔒 Bloqueada
+              </span>
+            )}
+          </h1>
+          <p className="text-sm text-foreground/60">{patient.email}</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {patient.patientProfile.termsAcceptedAt ? (
+            <span className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs font-medium text-carbon">
+              ✅ Aceptó los términos el{" "}
+              {new Date(patient.patientProfile.termsAcceptedAt).toLocaleDateString("es-ES")}
+            </span>
+          ) : (
+            <span className="rounded-full bg-black/5 px-3 py-1.5 text-xs font-medium text-foreground/60">
+              ⏳ Aún no ha aceptado los términos
+            </span>
+          )}
+          {patient.patientProfile.renewalEnabled ? (
+            <span className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs font-medium text-carbon">
+              ✅ Renovación activa desde{" "}
+              {patient.patientProfile.renewalPlanStartDate &&
+                new Date(patient.patientProfile.renewalPlanStartDate).toLocaleDateString("es-ES")}
+            </span>
+          ) : (
+            <form action={enableRenewal}>
+              <input type="hidden" name="userId" value={patient.id} />
+              <button
+                type="submit"
+                className="rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+              >
+                🔁 Habilitar renovación (12 semanas más)
+              </button>
+            </form>
+          )}
+
+          {patient.patientProfile.extraMonthEnabled ? (
+            <span className="rounded-full bg-brand-tertiary-soft px-3 py-1.5 text-xs font-medium text-carbon">
+              {patient.patientProfile.extraMonthStartDate ? (
+                <>
+                  ✅ Mes extra activo desde{" "}
+                  {new Date(patient.patientProfile.extraMonthStartDate).toLocaleDateString("es-ES")}
+                </>
+              ) : (
+                "✅ Mes extra programado · se calculará al fijar el inicio del plan"
+              )}
+            </span>
+          ) : (
+            <form action={enableExtraMonth}>
+              <input type="hidden" name="userId" value={patient.id} />
+              <button
+                type="submit"
+                className="rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+              >
+                ➕ Habilitar 1 mes extra (semanas 13-16)
+              </button>
+            </form>
+          )}
+
+          <form action={patient.blocked ? unblockPatient : blockPatient}>
+            <input type="hidden" name="userId" value={patient.id} />
+            <button
+              type="submit"
+              className="rounded-full border border-black/10 bg-blanco-roto px-3 py-1.5 text-xs font-medium hover:border-brand-primary"
+            >
+              {patient.blocked ? "🔓 Desbloquear acceso" : "🔒 Bloquear acceso"}
+            </button>
+          </form>
+
+          <details className="relative">
+            <summary className="cursor-pointer list-none rounded-full border border-black/10 bg-blanco-roto px-3 py-1.5 text-xs font-medium hover:border-brand-primary">
+              🔑 Restablecer contraseña
+            </summary>
+            <form
+              action={resetPatientPassword}
+              className="absolute right-0 z-10 mt-2 flex w-64 flex-col gap-2 rounded-2xl border border-black/5 bg-blanco-roto p-4 shadow-md"
+            >
+              <input type="hidden" name="userId" value={patient.id} />
+              <label className="flex flex-col gap-1 text-xs">
+                Contraseña provisional nueva
+                <input
+                  name="password"
+                  type="text"
+                  required
+                  minLength={8}
+                  placeholder="Mínimo 8 caracteres"
+                  className="rounded-lg border border-black/10 px-2 py-1.5 text-sm outline-none focus:border-brand-primary"
+                />
+              </label>
+              <p className="text-xs text-foreground/50">
+                Se la das a la paciente para que vuelva a entrar — le pedirá
+                elegir la suya al hacerlo.
+              </p>
+              <button
+                type="submit"
+                className="self-start rounded-full bg-brand-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+              >
+                Guardar
+              </button>
+            </form>
+          </details>
+
+          {pushSubscriptionCount > 0 && (
+            <form action={sendTestPush}>
+              <input type="hidden" name="userId" value={patient.id} />
+              <button
+                type="submit"
+                className="rounded-full border border-black/10 bg-blanco-roto px-3 py-1.5 text-xs font-medium hover:border-brand-primary"
+                title={`${pushSubscriptionCount} dispositivo(s) suscrito(s)`}
+              >
+                🔔 Enviar notificación de prueba
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+
+      {symptomForm && (
+        <div className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+          <p className="font-semibold">🪪 Ficha de la paciente</p>
+          <p className="text-xs text-foreground/50">
+            Rellenado por ella en el formulario de síntomas
+            {symptomForm.submittedAt && (
+              <> · {new Date(symptomForm.submittedAt).toLocaleDateString("es-ES")}</>
+            )}
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {PERSONAL_FIELDS.map((field) => {
+              const value = symptomForm[field.id as keyof typeof symptomForm];
+              if (value === null || value === undefined || value === "") return null;
+              return (
+                <div key={field.id} className="text-sm">
+                  <span className="text-foreground/50">{field.label}: </span>
+                  <span>{String(value)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium">Progreso</span>
+          <span className="text-foreground/60">
+            {progress.completedItems} / {progress.totalItems} pasos ·{" "}
+            {progress.percent}%
+          </span>
+        </div>
+        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-black/5">
+          <div
+            className="h-full rounded-full bg-brand-tertiary"
+            style={{ width: `${progress.percent}%` }}
+          />
+        </div>
+      </div>
+
+      <PatientDetailTabs
+        tabs={[
+          { id: "paciente", label: "🧑 Paciente", content: pacienteTab },
+          { id: "subidas", label: "📤 Subidas", content: subidasTab },
+          { id: "revision-quincenal", label: "📅 Revisión quincenal", content: revisionQuincenalTab },
+          { id: "registro-comidas", label: "📔 Registro de comidas", content: registroComidasTab },
+          { id: "historial-clinico", label: "🩺 Historial clínico", content: historialClinicoTab },
+          { id: "historial-avisos", label: "🔔 Historial de avisos", content: historialAvisosTab },
+        ]}
+      />
 
       <div className="rounded-2xl border border-brand-primary/30 bg-brand-primary-soft/40 p-5">
         <p className="font-semibold text-brand-primary">⚠️ Eliminar paciente</p>

@@ -35,7 +35,7 @@ export function toneColor(tone: Tone) {
     case "neutral":
       return "var(--brand-secondary-soft)";
     default:
-      return "var(--carbon)";
+      return "var(--color-carbon)";
   }
 }
 

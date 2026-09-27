@@ -7,21 +7,22 @@ type QuincenalRecord = {
   submittedAt: Date | string | null;
 };
 
-const WEEKS = [2, 6, 10];
-
-function EvolutionChart({ byWeek }: { byWeek: Map<number, Record<string, string>> }) {
+function EvolutionChart({ byWeek, weeks }: { byWeek: Map<number, Record<string, string>>; weeks: number[] }) {
   const series = [
     { id: "estres", label: "Estrés", color: "var(--brand-primary)", dash: "6 4" },
     { id: "valoracionGeneral", label: "Valoración general", color: "var(--brand-tertiary)", dash: undefined },
   ];
 
-  const hasAnyData = series.some((s) => WEEKS.some((w) => byWeek.get(w)?.[s.id]));
+  const hasAnyData = series.some((s) => weeks.some((w) => byWeek.get(w)?.[s.id]));
   if (!hasAnyData) return null;
 
   const width = 320;
   const height = 140;
   const padding = 24;
-  const xFor = (week: number) => padding + ((week - 2) / (10 - 2)) * (width - padding * 2);
+  const minWeek = weeks[0];
+  const maxWeek = weeks[weeks.length - 1];
+  const xFor = (week: number) =>
+    padding + (maxWeek === minWeek ? 0 : ((week - minWeek) / (maxWeek - minWeek)) * (width - padding * 2));
   const yFor = (value: number) => height - padding - ((value - 1) / (5 - 1)) * (height - padding * 2);
 
   return (
@@ -30,13 +31,13 @@ function EvolutionChart({ byWeek }: { byWeek: Map<number, Record<string, string>
       <svg viewBox={`0 0 ${width} ${height}`} className="mt-2 w-full max-w-sm">
         <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="currentColor" strokeOpacity={0.15} />
         <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="currentColor" strokeOpacity={0.15} />
-        {WEEKS.map((w) => (
+        {weeks.map((w) => (
           <text key={w} x={xFor(w)} y={height - padding + 14} fontSize={9} textAnchor="middle" fill="currentColor" opacity={0.5}>
             S{w}
           </text>
         ))}
         {series.map((s) => {
-          const points = WEEKS.map((w) => {
+          const points = weeks.map((w) => {
             const raw = byWeek.get(w)?.[s.id];
             const num = raw ? Number(raw) : null;
             return num ? { week: w, value: num } : null;
@@ -85,7 +86,16 @@ function EvolutionChart({ byWeek }: { byWeek: Map<number, Record<string, string>
   );
 }
 
-export function QuincenalComparison({ forms }: { forms: QuincenalRecord[] }) {
+export function QuincenalComparison({
+  forms,
+  weeks = [2, 6, 10],
+}: {
+  forms: QuincenalRecord[];
+  // El mes extra añade la semana 14 a la comparación (ver QuincenalSection
+  // en la ficha de coach) — sin esto se quedaba siempre fija en 2/6/10 y
+  // cualquier respuesta dada solo en semana 14 no aparecía en ningún sitio.
+  weeks?: number[];
+}) {
   const byWeek = new Map(
     forms
       .filter((f) => f.submittedAt)
@@ -102,14 +112,14 @@ export function QuincenalComparison({ forms }: { forms: QuincenalRecord[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <EvolutionChart byWeek={byWeek} />
+      <EvolutionChart byWeek={byWeek} weeks={weeks} />
 
       <div className="overflow-x-auto rounded-2xl border border-black/5 bg-blanco-roto">
         <table className="w-full min-w-[560px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-black/5 text-left">
               <th className="p-3 font-medium text-foreground/50">Pregunta</th>
-              {WEEKS.map((w) => (
+              {weeks.map((w) => (
                 <th key={w} className="p-3 font-medium text-foreground/50">
                   Semana {w}
                   {!byWeek.has(w) && (
@@ -122,14 +132,14 @@ export function QuincenalComparison({ forms }: { forms: QuincenalRecord[] }) {
           <tbody>
             {QUINCENAL_SECTIONS.map((section) => {
               const rows = section.fields.filter((field) =>
-                WEEKS.some((w) => byWeek.get(w)?.[field.id]),
+                weeks.some((w) => byWeek.get(w)?.[field.id]),
               );
               if (rows.length === 0) return null;
               return (
                 <Fragment key={section.title}>
                   <tr>
                     <td
-                      colSpan={WEEKS.length + 1}
+                      colSpan={weeks.length + 1}
                       className="bg-black/[0.02] p-2 text-xs font-semibold uppercase tracking-wide text-brand-secondary"
                     >
                       {section.title}
@@ -138,7 +148,7 @@ export function QuincenalComparison({ forms }: { forms: QuincenalRecord[] }) {
                   {rows.map((field) => (
                     <tr key={field.id} className="border-b border-black/5 align-top">
                       <td className="p-3 text-foreground/70">{field.label}</td>
-                      {WEEKS.map((w) => {
+                      {weeks.map((w) => {
                         const value = byWeek.get(w)?.[field.id];
                         const option = field.options?.find((o) => o.label === value);
                         return (

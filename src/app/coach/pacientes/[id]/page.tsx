@@ -85,7 +85,7 @@ function QuincenalSection({
   return (
     <div className="flex flex-col gap-4">
       <h2 className="text-lg font-semibold">{title}</h2>
-      {weeks.length > 1 && <QuincenalComparison forms={forms} />}
+      {weeks.length > 1 && <QuincenalComparison forms={forms} weeks={weeks} />}
 
       <div className="flex flex-wrap gap-2">
         {weeks.map((week) => {

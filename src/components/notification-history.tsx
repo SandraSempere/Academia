@@ -15,6 +15,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   appointment_reminder: "📅 Recordatorio de cita",
   quincenal_reminder: "📋 Recordatorio de formulario",
   quincenal_video: "🎥 Vídeo de revisión",
+  celebration_reminder: "🎉 Recordatorio de celebración",
+  commitment_form_reminder: "🗓️ Recordatorio de carta de compromiso",
   welcome: "🌿 Bienvenida",
   test_push: "🔔 Prueba manual",
 };

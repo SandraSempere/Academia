@@ -237,6 +237,50 @@ Sandra`;
   );
 }
 
+// Recordatorio de "Tu línea de intentos y tu carta de compromiso · Semana
+// 2" (Módulo 1 de Academia) — se cuenta desde la fecha de alta, no desde
+// planStartDate (ver commitmentFormReminder en src/lib/revisiones.ts).
+export async function sendCommitmentFormReminderEmail(
+  to: string,
+  name: string,
+  when: "hoy" | "mañana",
+  patientProfileId?: string,
+) {
+  const subject =
+    when === "hoy"
+      ? "Hoy te toca tu línea de intentos y carta de compromiso 🗓️"
+      : "Mañana te toca tu línea de intentos y carta de compromiso 🗓️";
+  const text =
+    when === "hoy"
+      ? `¡Hola ${name}!
+
+Hoy es un buen momento para rellenar tu línea de intentos y tu carta de compromiso, dentro del Módulo 1 de tu Academia.
+
+Es un ejercicio de mirar atrás —qué has probado ya, cómo te ha ido— antes de mirar hacia delante y ponerte por escrito tu propio compromiso para este proceso. Nos la volveremos a leer juntas en la semana 12.
+
+Entra en tu espacio de Origen Digestivo cuando puedas para hacerlo.
+
+Un abrazo,
+Sandra`
+      : `¡Hola ${name}!
+
+Mañana te toca un ejercicio especial: tu línea de intentos y tu carta de compromiso, dentro del Módulo 1 de tu Academia.
+
+Es un momento para mirar atrás —qué has intentado ya, cómo te ha ido— antes de mirar hacia delante y escribirte una carta con tu propio compromiso para este proceso. No hace falta hacerlo perfecto, solo con calma y honestidad.
+
+Cuando puedas, entra en tu espacio de Origen Digestivo y lo encuentras en el Módulo 1, justo debajo de "Mi historia personal".
+
+Un abrazo,
+Sandra`;
+
+  await sendEmail(
+    to,
+    subject,
+    text,
+    patientProfileId ? { patientProfileId, category: "commitment_form_reminder" } : {},
+  );
+}
+
 // Recordatorio a la paciente de su próxima cita de revisión (semana
 // 4/8/12, renovación o la final del mes extra) — mismo texto el día antes
 // y el mismo día (ya incluye la fecha y hora exactas, así que no hace

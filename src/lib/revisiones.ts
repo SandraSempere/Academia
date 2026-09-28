@@ -101,6 +101,26 @@ export function formularioReminder(
   return null;
 }
 
+// Recordatorio de "Tu línea de intentos y tu carta de compromiso · Semana
+// 2" (Módulo 1 de Academia) — a diferencia del Formulario quincenal, este
+// se cuenta desde la fecha de alta de la paciente (`PatientProfile.
+// createdAt`), no desde `planStartDate`: el ejercicio ya está disponible
+// desde el primer día, sin depender de que la coach haya subido un plan
+// nutricional. Mismo "+15 días" que el resto de "semana 2" de la app, para
+// que signifique lo mismo en todos sitios.
+export function commitmentFormReminder(
+  createdAt: Date,
+  today: Date,
+): { date: Date; when: "hoy" | "mañana" } | null {
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const date = addDays(createdAt, 15);
+
+  if (isSameDay(date, today)) return { date, when: "hoy" };
+  if (isSameDay(date, tomorrow)) return { date, when: "mañana" };
+  return null;
+}
+
 // Estado del formulario para el banner de la propia Home de la paciente —
 // a diferencia de `formularioReminder` (solo "hoy"/"mañana", usado también
 // para decidir cuándo mandar el email/push, no se puede tocar sin afectar

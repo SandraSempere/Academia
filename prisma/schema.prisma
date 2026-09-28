@@ -442,6 +442,8 @@ model CommitmentForm {
   attempt6HowItWent  String?
   letter             String? // "Tu carta de compromiso"
   submittedAt        DateTime?
+  reminderSentAt          DateTime? // recordatorio del día exacto ya enviado (evita reenviarlo)
+  reminderSentDayBeforeAt DateTime? // recordatorio del día antes ya enviado (evita reenviarlo, aparte del anterior)
   updatedAt          DateTime       @updatedAt
 }
 

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { formularioReminder, extraMonthFormularioReminder } from "@/lib/revisiones";
-import { sendPatientFormReminderEmail, sendCelebrationFormReminderEmail } from "@/lib/email";
+import { formularioReminder, extraMonthFormularioReminder, commitmentFormReminder } from "@/lib/revisiones";
+import { sendPatientFormReminderEmail, sendCelebrationFormReminderEmail, sendCommitmentFormReminderEmail } from "@/lib/email";
 import { notifyPatient } from "@/lib/notify";
 
 function reminderPush(week: 2 | 6 | 10 | 14, when: "hoy" | "mañana", cycle: 1 | 2) {
@@ -20,6 +20,18 @@ function celebrationReminderPush(when: "hoy" | "mañana") {
     title: "🎉 Mi momento de celebración",
     body: `Semana 6 — ${when === "hoy" ? "es hoy" : "es mañana"}. Lo encuentras dentro de Mi progreso.`,
     url: "/mi-momento-de-celebracion",
+  };
+}
+
+// "Tu línea de intentos y tu carta de compromiso · Semana 2" (Módulo 1 de
+// Academia) — a diferencia de todo lo anterior, se cuenta desde la fecha de
+// alta de la paciente (createdAt), no desde planStartDate, así que se
+// comprueba una sola vez por paciente, fuera del bucle de ciclos.
+function commitmentReminderPush(when: "hoy" | "mañana") {
+  return {
+    title: "🗓️ Tu línea de intentos y carta de compromiso",
+    body: `${when === "hoy" ? "Hoy" : "Mañana"} toca este ejercicio del Módulo 1.`,
+    url: "/linea-de-intentos",
   };
 }
 
@@ -43,9 +55,13 @@ export async function GET(request: Request) {
     }
   }
 
+  // Sin "where": el recordatorio de la línea de intentos/carta de
+  // compromiso aplica desde el alta, antes incluso de que exista
+  // planStartDate — así que hace falta mirar a todas las pacientes, no solo
+  // a las que ya tienen plan/renovación/mes extra activados (el resto de
+  // comprobaciones de abajo ya se protegen solas si esos campos son null).
   const patients = await prisma.patientProfile.findMany({
-    where: { OR: [{ planStartDate: { not: null } }, { renewalEnabled: true }, { extraMonthEnabled: true }] },
-    include: { user: true, quincenalForms: true, celebrationForm: true },
+    include: { user: true, quincenalForms: true, celebrationForm: true, commitmentForm: true },
   });
 
   const today = new Date();
@@ -57,6 +73,26 @@ export async function GET(request: Request) {
   ];
 
   for (const profile of patients) {
+    const commitmentDue = commitmentFormReminder(profile.createdAt, today);
+    if (commitmentDue) {
+      const sentField = commitmentDue.when === "hoy" ? "reminderSentAt" : "reminderSentDayBeforeAt";
+      if (!profile.commitmentForm?.submittedAt && !profile.commitmentForm?.[sentField]) {
+        await prisma.commitmentForm.upsert({
+          where: { patientProfileId: profile.id },
+          create: { patientProfileId: profile.id, [sentField]: today },
+          update: { [sentField]: today },
+        });
+
+        await notifyPatient(
+          profile.id,
+          commitmentReminderPush(commitmentDue.when),
+          () => sendCommitmentFormReminderEmail(profile.user.email, profile.user.name ?? "", commitmentDue.when, profile.id),
+          "commitment_form_reminder",
+        );
+        remindersSent++;
+      }
+    }
+
     for (const { cycle, startField, r4Field, r8Field } of cycles) {
       if (cycle === 2 && !profile.renewalEnabled) continue;
       const planStartDate = profile[startField];

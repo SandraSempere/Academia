@@ -248,6 +248,7 @@ export default async function PacienteDetailPage({
         celebrationFormSubmittedAt={celebrationForm?.submittedAt ?? null}
         ruleAuditFormSubmittedAt={ruleAuditForm?.submittedAt ?? null}
         closingFormSubmittedAt={closingForm?.submittedAt ?? null}
+        extraMonthEnabled={patient.patientProfile.extraMonthEnabled}
       />
 
       {patient.patientProfile.renewalEnabled && (

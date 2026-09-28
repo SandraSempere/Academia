@@ -1,5 +1,5 @@
 import { updateRevisionDate } from "@/app/coach/actions";
-import { computeCheckpoints, atMidnight } from "@/lib/revisiones";
+import { computeCheckpoints, atMidnight, addDays } from "@/lib/revisiones";
 
 function toDateInputValue(date: Date) {
   // Fecha local (no UTC) — con toISOString() una medianoche local en
@@ -22,7 +22,7 @@ type Row = {
 };
 
 function TimelineRow({ row, userId, today }: { row: Row; userId: string; today: Date }) {
-  const isFinishLine = row.label === "Revisión final semana 12";
+  const isFinishLine = row.label.startsWith("Revisión final semana");
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-2 border-b border-black/5 py-2 text-sm last:border-0">
@@ -75,6 +75,7 @@ export function ProgramTimeline({
   celebrationFormSubmittedAt,
   ruleAuditFormSubmittedAt,
   closingFormSubmittedAt,
+  extraMonthEnabled,
 }: {
   userId: string;
   title: string;
@@ -90,6 +91,10 @@ export function ProgramTimeline({
   celebrationFormSubmittedAt?: Date | null;
   ruleAuditFormSubmittedAt?: Date | null;
   closingFormSubmittedAt?: Date | null;
+  // El mes extra (semanas 13-16) alarga la revisión final 30 días más allá
+  // de la semana 12 — mismo cálculo que computeExtraMonthCheckpoints
+  // (planStartDate + 90 + 30), para no duplicar la fórmula con una propia.
+  extraMonthEnabled?: boolean;
 }) {
   if (!planStartDate) {
     return (
@@ -158,26 +163,28 @@ export function ProgramTimeline({
   rows.push({ label: "Formulario semana 10", actual: formSubmitted(10), expected: at("Formulario semana 10") });
 
   const revision12Date = at("Revisión final semana 12");
-  rows.push({ label: "Revisión final semana 12", actual: null, expected: revision12Date });
+  const finalWeek = extraMonthEnabled ? 16 : 12;
+  const finalDate = extraMonthEnabled ? addDays(revision12Date, 30) : revision12Date;
+  rows.push({ label: `Revisión final semana ${finalWeek}`, actual: null, expected: finalDate });
   if (closingFormSubmittedAt !== undefined) {
     rows.push({
       label: "Formulario de cierre y valoración",
       actual: closingFormSubmittedAt,
-      expected: revision12Date,
+      expected: finalDate,
     });
   }
 
   const daysRemaining = Math.ceil(
-    (atMidnight(revision12Date).getTime() - atMidnight(today).getTime()) / (1000 * 60 * 60 * 24),
+    (atMidnight(finalDate).getTime() - atMidnight(today).getTime()) / (1000 * 60 * 60 * 24),
   );
   const daysSinceStart = Math.floor(
     (atMidnight(today).getTime() - atMidnight(planStartDate).getTime()) / (1000 * 60 * 60 * 24),
   );
-  const currentWeek = Math.min(12, Math.max(1, Math.floor(daysSinceStart / 7) + 1));
+  const currentWeek = Math.min(finalWeek, Math.max(1, Math.floor(daysSinceStart / 7) + 1));
   const summary =
     daysRemaining <= 0
-      ? `Semana 12 alcanzada el ${fmt(revision12Date)}.`
-      : `Semana ${currentWeek} de 12 · quedan ${daysRemaining} día${daysRemaining === 1 ? "" : "s"} para la revisión final (${fmt(revision12Date)}).`;
+      ? `Semana ${finalWeek} alcanzada el ${fmt(finalDate)}.`
+      : `Semana ${currentWeek} de ${finalWeek} · quedan ${daysRemaining} día${daysRemaining === 1 ? "" : "s"} para la revisión final (${fmt(finalDate)}).`;
 
   return (
     <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">

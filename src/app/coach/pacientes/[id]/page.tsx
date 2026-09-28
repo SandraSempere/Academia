@@ -391,6 +391,20 @@ export default async function PacienteDetailPage({
 
       <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
         <summary className="cursor-pointer font-semibold">
+          🍽️ Cómo comer, no solo qué comer
+        </summary>
+
+        {eatingChecklist ? (
+          <div className="mt-4">
+            <EatingChecklistSummary data={eatingChecklist} />
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-foreground/60">Aún no ha empezado el checklist.</p>
+        )}
+      </details>
+
+      <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+        <summary className="cursor-pointer font-semibold">
           🎉 Mi momento de celebración · Semana 6{" "}
           {celebrationForm?.submittedAt ? (
             <span className="font-normal text-foreground/60">
@@ -404,6 +418,25 @@ export default async function PacienteDetailPage({
         {celebrationForm?.submittedAt && (
           <div className="mt-4">
             <CelebrationFormSummary data={celebrationForm} />
+          </div>
+        )}
+      </details>
+
+      <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+        <summary className="cursor-pointer font-semibold">
+          📋 Auditoría de reglas · Semana 8{" "}
+          {ruleAuditForm?.submittedAt ? (
+            <span className="font-normal text-foreground/60">
+              · enviado {new Date(ruleAuditForm.submittedAt).toLocaleDateString("es-ES")}
+            </span>
+          ) : (
+            <span className="font-normal text-foreground/60">· aún no lo ha enviado</span>
+          )}
+        </summary>
+
+        {ruleAuditForm?.submittedAt && (
+          <div className="mt-4">
+            <RuleAuditFormSummary data={ruleAuditForm} />
           </div>
         )}
       </details>
@@ -432,39 +465,6 @@ export default async function PacienteDetailPage({
               <ClosingFormSummary data={closingForm} />
             </div>
           </>
-        )}
-      </details>
-
-      <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
-        <summary className="cursor-pointer font-semibold">
-          🍽️ Cómo comer, no solo qué comer
-        </summary>
-
-        {eatingChecklist ? (
-          <div className="mt-4">
-            <EatingChecklistSummary data={eatingChecklist} />
-          </div>
-        ) : (
-          <p className="mt-2 text-sm text-foreground/60">Aún no ha empezado el checklist.</p>
-        )}
-      </details>
-
-      <details className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
-        <summary className="cursor-pointer font-semibold">
-          📋 Auditoría de reglas · Semana 8{" "}
-          {ruleAuditForm?.submittedAt ? (
-            <span className="font-normal text-foreground/60">
-              · enviado {new Date(ruleAuditForm.submittedAt).toLocaleDateString("es-ES")}
-            </span>
-          ) : (
-            <span className="font-normal text-foreground/60">· aún no lo ha enviado</span>
-          )}
-        </summary>
-
-        {ruleAuditForm?.submittedAt && (
-          <div className="mt-4">
-            <RuleAuditFormSummary data={ruleAuditForm} />
-          </div>
         )}
       </details>
     </>

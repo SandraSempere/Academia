@@ -18,6 +18,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   celebration_reminder: "🎉 Recordatorio de celebración",
   commitment_form_reminder: "🗓️ Recordatorio de carta de compromiso",
   rule_audit_reminder: "📋 Recordatorio de auditoría de reglas",
+  eating_checklist_reminder: "🍽️ Recordatorio de checklist \"Cómo comer\"",
   welcome: "🌿 Bienvenida",
   test_push: "🔔 Prueba manual",
 };

@@ -1,10 +1,17 @@
 import { prisma } from "@/lib/prisma";
-import { formularioReminder, extraMonthFormularioReminder, commitmentFormReminder, ruleAuditReminder } from "@/lib/revisiones";
+import {
+  formularioReminder,
+  extraMonthFormularioReminder,
+  commitmentFormReminder,
+  ruleAuditReminder,
+  eatingChecklistReminder,
+} from "@/lib/revisiones";
 import {
   sendPatientFormReminderEmail,
   sendCelebrationFormReminderEmail,
   sendCommitmentFormReminderEmail,
   sendRuleAuditReminderEmail,
+  sendEatingChecklistReminderEmail,
 } from "@/lib/email";
 import { notifyPatient } from "@/lib/notify";
 
@@ -51,6 +58,17 @@ function ruleAuditReminderPush(when: "hoy" | "mañana") {
   };
 }
 
+// Checklist "Cómo comer, no solo qué comer" (Módulo 2 de Academia) —
+// coincide con "Revisión semana 4", solo ciclo original (ver
+// eatingChecklistReminder en src/lib/revisiones.ts).
+function eatingChecklistReminderPush(when: "hoy" | "mañana") {
+  return {
+    title: '🍽️ Tu checklist "Cómo comer"',
+    body: `${when === "hoy" ? "Hoy" : "Mañana"} toca darle un vistazo, del Módulo 2.`,
+    url: "/como-comer",
+  };
+}
+
 // Comprobación diaria: a qué pacientes les toca (mañana o hoy) rellenar su
 // Formulario de revisión quincenal (semana 2/6/10, o semana 14 del mes
 // extra) — les manda un recordatorio (email siempre, y notificación push
@@ -77,7 +95,14 @@ export async function GET(request: Request) {
   // a las que ya tienen plan/renovación/mes extra activados (el resto de
   // comprobaciones de abajo ya se protegen solas si esos campos son null).
   const patients = await prisma.patientProfile.findMany({
-    include: { user: true, quincenalForms: true, celebrationForm: true, commitmentForm: true, ruleAuditForm: true },
+    include: {
+      user: true,
+      quincenalForms: true,
+      celebrationForm: true,
+      commitmentForm: true,
+      ruleAuditForm: true,
+      eatingChecklist: true,
+    },
   });
 
   const today = new Date();
@@ -125,6 +150,35 @@ export async function GET(request: Request) {
             ruleAuditReminderPush(ruleAuditDue.when),
             () => sendRuleAuditReminderEmail(profile.user.email, profile.user.name ?? "", ruleAuditDue.when, profile.id),
             "rule_audit_reminder",
+          );
+          remindersSent++;
+        }
+      }
+    }
+
+    if (profile.planStartDate) {
+      const eatingChecklistDue = eatingChecklistReminder(
+        profile.planStartDate,
+        profile.revision4Date,
+        profile.revision8Date,
+        today,
+      );
+      if (eatingChecklistDue) {
+        // Sin "submittedAt" (es un documento vivo, no algo que se envía una
+        // vez) — el único candado es el propio "ya avisado".
+        const sentField = eatingChecklistDue.when === "hoy" ? "reminderSentAt" : "reminderSentDayBeforeAt";
+        if (!profile.eatingChecklist?.[sentField]) {
+          await prisma.eatingChecklist.upsert({
+            where: { patientProfileId: profile.id },
+            create: { patientProfileId: profile.id, [sentField]: today },
+            update: { [sentField]: today },
+          });
+
+          await notifyPatient(
+            profile.id,
+            eatingChecklistReminderPush(eatingChecklistDue.when),
+            () => sendEatingChecklistReminderEmail(profile.user.email, profile.user.name ?? "", eatingChecklistDue.when, profile.id),
+            "eating_checklist_reminder",
           );
           remindersSent++;
         }

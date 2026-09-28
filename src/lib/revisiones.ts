@@ -145,6 +145,29 @@ export function ruleAuditReminder(
   return null;
 }
 
+// Recordatorio del checklist "Cómo comer, no solo qué comer" (Módulo 2 de
+// Academia) — coincide con "Revisión semana 4", igual criterio que
+// ruleAuditReminder (depende de planStartDate, solo ciclo original). A
+// diferencia de los formularios de una sola vez, este documento es "vivo"
+// (checkboxes + una palabra al día) y no tiene `submittedAt` — el aviso es
+// solo un empujón puntual para que lo abra, no un "ya lo hiciste".
+export function eatingChecklistReminder(
+  planStartDate: Date,
+  revision4Date: Date | null,
+  revision8Date: Date | null,
+  today: Date,
+): { date: Date; when: "hoy" | "mañana" } | null {
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const date = computeCheckpoints(planStartDate, revision4Date, revision8Date).find(
+    (c) => c.label === "Revisión semana 4",
+  )!.date;
+
+  if (isSameDay(date, today)) return { date, when: "hoy" };
+  if (isSameDay(date, tomorrow)) return { date, when: "mañana" };
+  return null;
+}
+
 // Estado del formulario para el banner de la propia Home de la paciente —
 // a diferencia de `formularioReminder` (solo "hoy"/"mañana", usado también
 // para decidir cuándo mandar el email/push, no se puede tocar sin afectar

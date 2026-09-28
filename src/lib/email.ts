@@ -325,6 +325,50 @@ Sandra`;
   );
 }
 
+// Recordatorio del checklist "Cómo comer, no solo qué comer" (Módulo 2 de
+// Academia) — coincide con "Revisión semana 4" (ver eatingChecklistReminder
+// en src/lib/revisiones.ts), solo ciclo original.
+export async function sendEatingChecklistReminderEmail(
+  to: string,
+  name: string,
+  when: "hoy" | "mañana",
+  patientProfileId?: string,
+) {
+  const subject =
+    when === "hoy"
+      ? "Hoy te toca tu checklist de \"Cómo comer\" 🍽️"
+      : "Mañana te toca tu checklist de \"Cómo comer\" 🍽️";
+  const text =
+    when === "hoy"
+      ? `¡Hola ${name}!
+
+Hoy es un buen momento para abrir tu checklist "Cómo comer, no solo qué comer", dentro del Módulo 2 de tu Academia.
+
+Recuerda que es un documento vivo, no algo que se hace una vez: ve marcando los 5 pasos según los vayas practicando, y cada día de esta semana apunta una palabra en "Mi semana" sobre cómo te sentó la comida.
+
+Entra en tu espacio de Origen Digestivo cuando puedas para verlo.
+
+Un abrazo,
+Sandra`
+      : `¡Hola ${name}!
+
+Mañana es un buen momento para abrir tu checklist "Cómo comer, no solo qué comer", dentro del Módulo 2 de tu Academia.
+
+No es un formulario que se rellena una vez y ya está — es un documento vivo: vas marcando los 5 pasos según los vayas practicando, y cada día apuntas una palabra en "Mi semana" sobre cómo te sentó la comida.
+
+Cuando puedas, entra en tu espacio de Origen Digestivo para abrirlo.
+
+Un abrazo,
+Sandra`;
+
+  await sendEmail(
+    to,
+    subject,
+    text,
+    patientProfileId ? { patientProfileId, category: "eating_checklist_reminder" } : {},
+  );
+}
+
 // Recordatorio a la paciente de su próxima cita de revisión (semana
 // 4/8/12, renovación o la final del mes extra) — mismo texto el día antes
 // y el mismo día (ya incluye la fecha y hora exactas, así que no hace

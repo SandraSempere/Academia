@@ -387,6 +387,8 @@ model EatingChecklist {
   friday           String?
   saturday         String?
   sunday           String?
+  reminderSentAt          DateTime? // recordatorio del día exacto (Revisión semana 4) ya enviado (evita reenviarlo) — es un documento vivo sin "submittedAt", así que este es el único candado
+  reminderSentDayBeforeAt DateTime? // recordatorio del día antes ya enviado (evita reenviarlo, aparte del anterior)
   updatedAt        DateTime       @updatedAt
 }
 

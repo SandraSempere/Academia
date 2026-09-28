@@ -121,6 +121,30 @@ export function commitmentFormReminder(
   return null;
 }
 
+// Recordatorio de "Auditoría de reglas · Semana 8" (Módulo 1 de Academia)
+// — a diferencia de la línea de intentos/carta de compromiso (contada
+// desde el alta), esta sí depende de `planStartDate`: coincide con la
+// misma fecha que "Revisión semana 8", igual que ya se muestra en el
+// timeline de cada paciente (`program-timeline.tsx`). Solo se comprueba en
+// el ciclo original — no se repite en la renovación, mismo criterio que
+// "Mi momento de celebración".
+export function ruleAuditReminder(
+  planStartDate: Date,
+  revision4Date: Date | null,
+  revision8Date: Date | null,
+  today: Date,
+): { date: Date; when: "hoy" | "mañana" } | null {
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const date = computeCheckpoints(planStartDate, revision4Date, revision8Date).find(
+    (c) => c.label === "Revisión semana 8",
+  )!.date;
+
+  if (isSameDay(date, today)) return { date, when: "hoy" };
+  if (isSameDay(date, tomorrow)) return { date, when: "mañana" };
+  return null;
+}
+
 // Estado del formulario para el banner de la propia Home de la paciente —
 // a diferencia de `formularioReminder` (solo "hoy"/"mañana", usado también
 // para decidir cuándo mandar el email/push, no se puede tocar sin afectar

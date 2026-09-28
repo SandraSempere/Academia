@@ -1,6 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { formularioReminder, extraMonthFormularioReminder, commitmentFormReminder } from "@/lib/revisiones";
-import { sendPatientFormReminderEmail, sendCelebrationFormReminderEmail, sendCommitmentFormReminderEmail } from "@/lib/email";
+import { formularioReminder, extraMonthFormularioReminder, commitmentFormReminder, ruleAuditReminder } from "@/lib/revisiones";
+import {
+  sendPatientFormReminderEmail,
+  sendCelebrationFormReminderEmail,
+  sendCommitmentFormReminderEmail,
+  sendRuleAuditReminderEmail,
+} from "@/lib/email";
 import { notifyPatient } from "@/lib/notify";
 
 function reminderPush(week: 2 | 6 | 10 | 14, when: "hoy" | "mañana", cycle: 1 | 2) {
@@ -35,6 +40,17 @@ function commitmentReminderPush(when: "hoy" | "mañana") {
   };
 }
 
+// "Auditoría de reglas · Semana 8" (Módulo 1 de Academia) — coincide con
+// "Revisión semana 8", solo ciclo original (ver ruleAuditReminder en
+// src/lib/revisiones.ts).
+function ruleAuditReminderPush(when: "hoy" | "mañana") {
+  return {
+    title: "📋 Auditoría de tus reglas",
+    body: `${when === "hoy" ? "Hoy" : "Mañana"} toca este ejercicio del Módulo 1.`,
+    url: "/auditoria-reglas",
+  };
+}
+
 // Comprobación diaria: a qué pacientes les toca (mañana o hoy) rellenar su
 // Formulario de revisión quincenal (semana 2/6/10, o semana 14 del mes
 // extra) — les manda un recordatorio (email siempre, y notificación push
@@ -61,7 +77,7 @@ export async function GET(request: Request) {
   // a las que ya tienen plan/renovación/mes extra activados (el resto de
   // comprobaciones de abajo ya se protegen solas si esos campos son null).
   const patients = await prisma.patientProfile.findMany({
-    include: { user: true, quincenalForms: true, celebrationForm: true, commitmentForm: true },
+    include: { user: true, quincenalForms: true, celebrationForm: true, commitmentForm: true, ruleAuditForm: true },
   });
 
   const today = new Date();
@@ -90,6 +106,28 @@ export async function GET(request: Request) {
           "commitment_form_reminder",
         );
         remindersSent++;
+      }
+    }
+
+    if (profile.planStartDate) {
+      const ruleAuditDue = ruleAuditReminder(profile.planStartDate, profile.revision4Date, profile.revision8Date, today);
+      if (ruleAuditDue) {
+        const sentField = ruleAuditDue.when === "hoy" ? "reminderSentAt" : "reminderSentDayBeforeAt";
+        if (!profile.ruleAuditForm?.submittedAt && !profile.ruleAuditForm?.[sentField]) {
+          await prisma.ruleAuditForm.upsert({
+            where: { patientProfileId: profile.id },
+            create: { patientProfileId: profile.id, [sentField]: today },
+            update: { [sentField]: today },
+          });
+
+          await notifyPatient(
+            profile.id,
+            ruleAuditReminderPush(ruleAuditDue.when),
+            () => sendRuleAuditReminderEmail(profile.user.email, profile.user.name ?? "", ruleAuditDue.when, profile.id),
+            "rule_audit_reminder",
+          );
+          remindersSent++;
+        }
       }
     }
 

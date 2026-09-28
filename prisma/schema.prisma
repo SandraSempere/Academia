@@ -411,6 +411,8 @@ model RuleAuditForm {
   rule4Reflection  String?
   rule4Decision    String?
   submittedAt      DateTime?
+  reminderSentAt          DateTime? // recordatorio del día exacto (Revisión semana 8) ya enviado (evita reenviarlo)
+  reminderSentDayBeforeAt DateTime? // recordatorio del día antes ya enviado (evita reenviarlo, aparte del anterior)
   updatedAt        DateTime       @updatedAt
 }
 

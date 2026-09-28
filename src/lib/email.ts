@@ -281,6 +281,50 @@ Sandra`;
   );
 }
 
+// Recordatorio de "Auditoría de reglas · Semana 8" (Módulo 1 de Academia)
+// — coincide con "Revisión semana 8" (ver ruleAuditReminder en
+// src/lib/revisiones.ts), solo ciclo original.
+export async function sendRuleAuditReminderEmail(
+  to: string,
+  name: string,
+  when: "hoy" | "mañana",
+  patientProfileId?: string,
+) {
+  const subject =
+    when === "hoy"
+      ? "Hoy te toca tu auditoría de reglas 📋"
+      : "Mañana te toca tu auditoría de reglas 📋";
+  const text =
+    when === "hoy"
+      ? `¡Hola ${name}!
+
+Hoy es un buen momento para hacer tu "Auditoría de reglas", dentro del Módulo 1 de tu Academia.
+
+Ya llevas unas semanas en el proceso, así que has tenido tiempo para observarte. Seguramente tienes normas que sigues sin cuestionar —cosas tipo "nunca como fruta después de comer" o "siempre evito la cebolla por si acaso". Algunas nacieron de una razón real; otras, del miedo o de una mala experiencia puntual que ya no aplica. Vamos a revisarlas.
+
+Entra en tu espacio de Origen Digestivo cuando puedas para hacerlo.
+
+Un abrazo,
+Sandra`
+      : `¡Hola ${name}!
+
+Mañana te toca un ejercicio interesante: tu "Auditoría de reglas", dentro del Módulo 1 de tu Academia.
+
+Vas a repasar las normas que te has autoimpuesto con la comida —cosas tipo "nunca como fruta después de comer" o "siempre evito la cebolla por si acaso". Algunas nacieron de una razón real; otras, del miedo o de algo que ya no aplica. Vale la pena mirarlas con calma.
+
+Cuando puedas, entra en tu espacio de Origen Digestivo y lo encuentras en el Módulo 1.
+
+Un abrazo,
+Sandra`;
+
+  await sendEmail(
+    to,
+    subject,
+    text,
+    patientProfileId ? { patientProfileId, category: "rule_audit_reminder" } : {},
+  );
+}
+
 // Recordatorio a la paciente de su próxima cita de revisión (semana
 // 4/8/12, renovación o la final del mes extra) — mismo texto el día antes
 // y el mismo día (ya incluye la fecha y hora exactas, así que no hace

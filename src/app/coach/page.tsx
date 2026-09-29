@@ -90,7 +90,10 @@ export default async function CoachHomePage() {
         include: { patientProfile: { include: { user: true } } },
       }),
       prisma.quincenalForm.findMany({
-        where: { submittedAt: { not: null }, reviewedAt: null },
+        // Se queda en la lista hasta que esté revisada Y tenga su vídeo
+        // subido — antes desaparecía solo con marcarla como revisada, aunque
+        // todavía faltara subirle el Loom de esa semana.
+        where: { submittedAt: { not: null }, OR: [{ reviewedAt: null }, { coachVideoUrl: null }] },
         orderBy: { submittedAt: "asc" },
         include: { patientProfile: { include: { user: true } } },
       }),
@@ -254,6 +257,9 @@ export default async function CoachHomePage() {
               >
                 <span>
                   {form.patientProfile.user.name} · Semana {form.week}
+                  {form.reviewedAt && !form.coachVideoUrl && (
+                    <span className="text-foreground/60"> · falta el vídeo</span>
+                  )}
                 </span>
                 <span className="text-foreground/60">
                   {form.submittedAt && new Date(form.submittedAt).toLocaleDateString("es-ES")}

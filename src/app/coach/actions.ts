@@ -466,6 +466,7 @@ export async function updateRevisionDate(formData: FormData) {
   const userId = String(formData.get("userId") ?? "");
   const field = String(formData.get("field") ?? "");
   const dateStr = String(formData.get("date") ?? "");
+  const timeStr = String(formData.get("time") ?? "").trim();
   const fieldDef = REVISION_DATE_FIELDS[field];
   if (!fieldDef) throw new Error("Campo no válido");
   if (!dateStr) throw new Error("Falta la fecha");
@@ -485,15 +486,22 @@ export async function updateRevisionDate(formData: FormData) {
     where: { patientProfileId_source: { patientProfileId: profile.id, source } },
   });
 
+  // Hora de la cita: si se ha puesto una en este mismo formulario (para no
+  // tener que ir aparte a la Agenda), esa; si no, la que ya tuviera (o
+  // 00:00 = "falta por poner hora" si es una cita nueva).
+  const appointmentDate = new Date(newDate);
+  if (timeStr) {
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    appointmentDate.setHours(hours, minutes, 0, 0);
+  } else if (existing) {
+    appointmentDate.setHours(existing.date.getHours(), existing.date.getMinutes(), 0, 0);
+  }
+
   if (existing) {
-    // Conserva la hora que ya tuviera puesta (o la deja en 00:00 = "falta
-    // por poner hora" si todavía no se había coordinado).
-    const updated = new Date(newDate);
-    updated.setHours(existing.date.getHours(), existing.date.getMinutes(), 0, 0);
-    await prisma.appointment.update({ where: { id: existing.id }, data: { date: updated } });
+    await prisma.appointment.update({ where: { id: existing.id }, data: { date: appointmentDate } });
   } else {
     await prisma.appointment.create({
-      data: { patientProfileId: profile.id, date: newDate, source, notes: label },
+      data: { patientProfileId: profile.id, date: appointmentDate, source, notes: label },
     });
   }
 

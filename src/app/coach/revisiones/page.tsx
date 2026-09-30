@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { computeCheckpoints, formularioAlert, computeExtraMonthCheckpoints, extraMonthFormularioAlert } from "@/lib/revisiones";
+import { computeCheckpoints, formularioAlert, computeExtraMonthCheckpoints, extraMonthFormularioAlert, isTimeTbd } from "@/lib/revisiones";
 import { updateRevisionDate } from "@/app/coach/actions";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,12 @@ function toDateInputValue(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function toTimeInputValue(date: Date) {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
 }
 
 type Row = {
@@ -26,6 +32,10 @@ type Row = {
   // la renovación (ver comentario en src/lib/plan-file-categories.ts).
   extraMonthEnabled?: boolean;
   extraMonthStartDate?: Date | null;
+  // Hora ya puesta en la cita real de Agenda (vacío = todavía sin
+  // coordinar) — para poder ponerla aquí mismo sin ir aparte a Agenda.
+  revision4Time: string;
+  revision8Time: string;
 };
 
 function RevisionesTable({
@@ -117,6 +127,12 @@ function RevisionesTable({
                       : checkpoint.label === "Revisión semana 8"
                         ? revision8Field
                         : null;
+                  const editableTime =
+                    checkpoint.label === "Revisión semana 4"
+                      ? row.revision4Time
+                      : checkpoint.label === "Revisión semana 8"
+                        ? row.revision8Time
+                        : "";
                   const submitted = checkpoint.formWeek
                     ? row.quincenalWeeksSubmitted.has(checkpoint.formWeek)
                     : null;
@@ -131,6 +147,13 @@ function RevisionesTable({
                             name="date"
                             type="date"
                             defaultValue={toDateInputValue(checkpoint.date)}
+                            className="rounded border border-black/10 px-1.5 py-1 text-xs outline-none focus:border-brand-primary"
+                          />
+                          <input
+                            name="time"
+                            type="time"
+                            defaultValue={editableTime}
+                            title="Hora de la cita — se guarda directamente en tu Agenda"
                             className="rounded border border-black/10 px-1.5 py-1 text-xs outline-none focus:border-brand-primary"
                           />
                           <button
@@ -201,6 +224,19 @@ export default async function RevisionesPage() {
 
   const today = new Date();
 
+  // Hora ya puesta (si la hay) en las citas reales de Agenda de "Revisión
+  // semana 4/8" — para poder editarla aquí mismo, sin ir aparte a Agenda.
+  const revisionAppointments = await prisma.appointment.findMany({
+    where: {
+      patientProfileId: { not: null },
+      source: { in: ["revision4", "revision8", "renewal_revision4", "renewal_revision8"] },
+    },
+    select: { patientProfileId: true, source: true, date: true },
+  });
+  const timeByProfileSource = new Map(
+    revisionAppointments.map((a) => [`${a.patientProfileId}-${a.source}`, isTimeTbd(a.date) ? "" : toTimeInputValue(a.date)]),
+  );
+
   const rows: Row[] = patients.map((patient) => ({
     id: patient.id,
     name: patient.name,
@@ -215,6 +251,8 @@ export default async function RevisionesPage() {
     ),
     extraMonthEnabled: patient.patientProfile?.extraMonthEnabled ?? false,
     extraMonthStartDate: patient.patientProfile?.extraMonthStartDate ?? null,
+    revision4Time: timeByProfileSource.get(`${patient.patientProfile?.id}-revision4`) ?? "",
+    revision8Time: timeByProfileSource.get(`${patient.patientProfile?.id}-revision8`) ?? "",
   }));
 
   const renewalRows: Row[] = patients
@@ -231,6 +269,8 @@ export default async function RevisionesPage() {
           .filter((f) => f.cycle === 2 && f.submittedAt)
           .map((f) => f.week),
       ),
+      revision4Time: timeByProfileSource.get(`${patient.patientProfile?.id}-renewal_revision4`) ?? "",
+      revision8Time: timeByProfileSource.get(`${patient.patientProfile?.id}-renewal_revision8`) ?? "",
     }));
 
   return (

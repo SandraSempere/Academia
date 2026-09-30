@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createAppointment, deleteAppointment, updateAppointment, resendAppointmentReminderTest } from "@/app/coach/actions";
 import { computeCheckpoints, computeExtraMonthCheckpoints, isTimeTbd } from "@/lib/revisiones";
+import { patientDisplayName } from "@/lib/patient";
 
 export const dynamic = "force-dynamic";
 
@@ -61,14 +62,22 @@ export default async function AgendaPage({
     prisma.appointment.findMany({
       where: { date: { gte: rangeStart, lte: rangeEnd } },
       orderBy: { date: "asc" },
-      include: { patientProfile: { include: { user: true } } },
+      include: { patientProfile: { include: { user: true, symptomForm: true } } },
     }),
     prisma.user.findMany({
       where: { role: "PATIENT" },
       orderBy: { name: "asc" },
-      include: { patientProfile: { include: { quincenalForms: true } } },
+      include: { patientProfile: { include: { quincenalForms: true, symptomForm: true } } },
     }),
   ]);
+
+  // Nombre + primer apellido en cuanto se sepa (mismo criterio que el
+  // listado de pacientes) — para distinguir a dos pacientes con el mismo
+  // nombre en el calendario.
+  const apptPatientName = (appt: (typeof appointments)[number]) =>
+    appt.patientProfile
+      ? patientDisplayName({ name: appt.patientProfile.user.name, patientProfile: { symptomForm: appt.patientProfile.symptomForm } })
+      : null;
 
   const appointmentsByDay = new Map<string, typeof appointments>();
   for (const appt of appointments) {
@@ -105,7 +114,7 @@ export default async function AgendaPage({
         if (!("formWeek" in checkpoint)) continue;
         addFormDueEntry(dateKey(checkpoint.date), {
           patientId: patient.id,
-          patientName: patient.name,
+          patientName: patientDisplayName(patient),
           week: checkpoint.formWeek!,
           cycle: 1,
           submitted: profile.quincenalForms.some(
@@ -125,7 +134,7 @@ export default async function AgendaPage({
         if (!("formWeek" in checkpoint)) continue;
         addFormDueEntry(dateKey(checkpoint.date), {
           patientId: patient.id,
-          patientName: patient.name,
+          patientName: patientDisplayName(patient),
           week: checkpoint.formWeek!,
           cycle: 2,
           submitted: profile.quincenalForms.some(
@@ -139,7 +148,7 @@ export default async function AgendaPage({
       const [formulario14] = computeExtraMonthCheckpoints(profile.extraMonthStartDate);
       addFormDueEntry(dateKey(formulario14.date), {
         patientId: patient.id,
-        patientName: patient.name,
+        patientName: patientDisplayName(patient),
         week: formulario14.formWeek!,
         cycle: 1,
         submitted: profile.quincenalForms.some((f) => f.cycle === 1 && f.week === 14 && f.submittedAt),
@@ -196,7 +205,7 @@ export default async function AgendaPage({
                 <div className="mt-1 flex flex-col gap-1">
                   {dayAppointments.map((appt) => {
                     const tbd = isTimeTbd(appt.date);
-                    const label = appt.patientProfile?.user.name ?? appt.title ?? "Cita";
+                    const label = apptPatientName(appt) ?? appt.title ?? "Cita";
                     return (
                       <div
                         key={appt.id}
@@ -226,7 +235,7 @@ export default async function AgendaPage({
                           <div className="mt-1 flex flex-col gap-0.5 rounded bg-blanco-roto px-1.5 py-1 text-[10px] text-foreground/70">
                             <p>
                               <span className="font-medium">Paciente:</span>{" "}
-                              {appt.patientProfile?.user.name ?? appt.title ?? "Sin paciente"}
+                              {apptPatientName(appt) ?? appt.title ?? "Sin paciente"}
                             </p>
                             <p>
                               <span className="font-medium">Día:</span>{" "}
@@ -330,7 +339,7 @@ export default async function AgendaPage({
             <option value="">— Sin paciente —</option>
             {patients.map((patient) => (
               <option key={patient.id} value={patient.id}>
-                {patient.name}
+                {patientDisplayName(patient)}
               </option>
             ))}
           </select>

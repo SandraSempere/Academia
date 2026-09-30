@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { computeCheckpoints, formularioAlert, computeExtraMonthCheckpoints, extraMonthFormularioAlert, isTimeTbd } from "@/lib/revisiones";
 import { updateRevisionDate } from "@/app/coach/actions";
+import { patientDisplayName } from "@/lib/patient";
 
 export const dynamic = "force-dynamic";
 
@@ -217,7 +218,7 @@ export default async function RevisionesPage() {
     orderBy: { name: "asc" },
     include: {
       patientProfile: {
-        include: { quincenalForms: true },
+        include: { quincenalForms: true, symptomForm: true },
       },
     },
   });
@@ -239,7 +240,7 @@ export default async function RevisionesPage() {
 
   const rows: Row[] = patients.map((patient) => ({
     id: patient.id,
-    name: patient.name,
+    name: patientDisplayName(patient),
     email: patient.email,
     planStartDate: patient.patientProfile?.planStartDate ?? null,
     revision4Date: patient.patientProfile?.revision4Date ?? null,
@@ -259,7 +260,7 @@ export default async function RevisionesPage() {
     .filter((patient) => patient.patientProfile?.renewalEnabled)
     .map((patient) => ({
       id: patient.id,
-      name: patient.name,
+      name: patientDisplayName(patient),
       email: patient.email,
       planStartDate: patient.patientProfile?.renewalPlanStartDate ?? null,
       revision4Date: patient.patientProfile?.renewalRevision4Date ?? null,

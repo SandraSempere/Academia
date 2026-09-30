@@ -9,6 +9,13 @@ export function addDays(date: Date, days: number) {
   return d;
 }
 
+// La hoja de ruta agrupa las 12 semanas en 6 bloques de 2 semanas cada uno
+// (WeekBlock.order 1-6, ver prisma/seed.ts: "Semanas 1-2", "Semanas 3-4"...)
+// — de ahí esta fórmula tan simple en vez de guardar el rango en cada bloque.
+export function weekToRoadmapBlockOrder(week: number): number {
+  return Math.min(6, Math.max(1, Math.ceil(week / 2)));
+}
+
 export function computeCheckpoints(
   planStartDate: Date,
   revision4Date: Date | null,

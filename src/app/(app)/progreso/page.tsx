@@ -8,6 +8,7 @@ import { VideoEmbed } from "@/components/video-embed";
 import { ResourceCard } from "@/components/resource-card";
 import { MealDiary } from "@/components/meal-diary";
 import type { MealDiaryEntryData } from "@/lib/meal-diary-fields";
+import { currentProgramWeek, weekToRoadmapBlockOrder } from "@/lib/revisiones";
 
 export const dynamic = "force-dynamic";
 
@@ -70,13 +71,29 @@ export default async function ProgresoPage() {
   // 2/6/10, no en un apartado aparte — mismo dato (cycle 1), un hueco más.
   const quincenalWeeksCycle1 = profile?.extraMonthEnabled ? [...QUINCENAL_WEEKS, 14] : QUINCENAL_WEEKS;
 
+  // Bloque de la hoja de ruta que le toca ahora mismo (semanas 1-12,
+  // agrupadas de 2 en 2) — se abre solo y se marca para que no tenga que
+  // buscarlo entre los demás bloques, ya cerrados por defecto.
+  const currentWeek = profile?.planStartDate ? currentProgramWeek(profile.planStartDate, new Date(), 12) : null;
+  const currentBlockOrder = currentWeek !== null ? weekToRoadmapBlockOrder(currentWeek) : null;
+  const currentBlockDone =
+    currentBlockOrder === null
+      ? true
+      : (weekBlocks.find((b) => b.order === currentBlockOrder)?.items ?? []).every((item) =>
+          completedIds.has(item.id),
+        );
+
   return (
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-2xl font-semibold">📍 Mi progreso</h1>
       </div>
 
-      <details id="hoja-de-ruta" className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+      <details
+        id="hoja-de-ruta"
+        className="rounded-2xl border border-black/5 bg-blanco-roto p-5"
+        open={currentBlockOrder !== null && !currentBlockDone}
+      >
         <summary className="cursor-pointer text-lg font-semibold">
           🗺️ Tu hoja de ruta de las 12 semanas
         </summary>
@@ -107,10 +124,14 @@ export default async function ProgresoPage() {
             <details
               key={block.id}
               className="rounded-2xl border border-black/5 bg-crema p-5"
-              open={block.order <= 0}
+              open={block.order <= 0 || block.order === currentBlockOrder}
             >
               <summary className="cursor-pointer font-semibold">
+                {block.order === currentBlockOrder && "📍 "}
                 {block.label}
+                {block.order === currentBlockOrder && (
+                  <span className="ml-1 font-normal text-foreground/50">· estás aquí</span>
+                )}
               </summary>
               <ul className="mt-3 flex flex-col gap-2">
                 {block.items.map((item) => (

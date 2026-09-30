@@ -7,7 +7,7 @@ import { LeafAccent } from "@/components/leaf-accent";
 import { IntakeScreeningForm } from "@/components/intake-screening-form";
 import { PushNotificationsCard } from "@/components/push-notifications-card";
 import { ResourceCard } from "@/components/resource-card";
-import { formularioBannerStatus, extraMonthFormularioBannerStatus } from "@/lib/revisiones";
+import { formularioBannerStatus, extraMonthFormularioBannerStatus, currentProgramWeek, weekToRoadmapBlockOrder } from "@/lib/revisiones";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +102,29 @@ export default async function HomePage() {
         : null;
   const showFormularioReminder = !!dueFormulario;
 
+  // Bloque de la hoja de ruta (semanas 1-12, agrupadas de 2 en 2) que le
+  // toca ahora mismo — para convertir el aviso genérico de debajo de la
+  // barra de progreso en uno concreto ("vas por la semana X") cuando
+  // todavía le queda algo por marcar en ese bloque.
+  const currentWeek = profile?.planStartDate ? currentProgramWeek(profile.planStartDate, today, 12) : null;
+  const currentBlockOrder = currentWeek !== null ? weekToRoadmapBlockOrder(currentWeek) : null;
+  const currentBlock =
+    currentBlockOrder !== null
+      ? await prisma.weekBlock.findFirst({ where: { order: currentBlockOrder }, include: { items: true } })
+      : null;
+  const currentBlockDone =
+    !currentBlock || currentBlock.items.length === 0
+      ? true
+      : (
+          await prisma.patientChecklistItem.count({
+            where: {
+              patientProfileId: profile!.id,
+              itemTemplateId: { in: currentBlock.items.map((i) => i.id) },
+              completed: true,
+            },
+          })
+        ) === currentBlock.items.length;
+
   return (
     <div className="flex flex-col gap-10">
       {showFormularioReminder && dueFormulario && (
@@ -184,10 +207,19 @@ export default async function HomePage() {
               style={{ width: `${progress.percent}%` }}
             />
           </div>
-          <p className="mt-2 text-xs text-foreground/50">
-            Recuerda ir marcando tu progreso en la hoja de ruta para llevar
-            control de todo el proceso
-          </p>
+          {currentBlock && !currentBlockDone ? (
+            <Link
+              href="/progreso#hoja-de-ruta"
+              className="mt-2 block text-xs font-medium text-brand-primary underline"
+            >
+              📍 Vas por la semana {currentWeek} — no olvides ir marcando tu hoja de ruta
+            </Link>
+          ) : (
+            <p className="mt-2 text-xs text-foreground/50">
+              Recuerda ir marcando tu progreso en la hoja de ruta para llevar
+              control de todo el proceso
+            </p>
+          )}
         </div>
       )}
 

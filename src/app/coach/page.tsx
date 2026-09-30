@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPatientsWithStatus, patientDisplayName } from "@/lib/patient";
-import { isTimeTbd, formularioWeekOverdue, extraMonthFormularioWeekOverdue, atMidnight } from "@/lib/revisiones";
+import {
+  isTimeTbd,
+  formularioWeekOverdue,
+  extraMonthFormularioWeekOverdue,
+  atMidnight,
+  currentProgramWeek,
+  programWeekBucket,
+  PROGRAM_WEEK_BUCKETS,
+} from "@/lib/revisiones";
 import { markPatientActivationSeen } from "@/app/coach/actions";
 
 // Días sin ninguna actividad propia (marcar la hoja de ruta, guardar el
@@ -180,6 +188,23 @@ export default async function CoachHomePage() {
     )
     .sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
 
+  // Vista rápida de en qué fase del programa está cada paciente activa —
+  // mismo criterio que /coach/analiticas (16 semanas si tiene el mes extra,
+  // ciclo de renovación contado aparte desde su propio inicio).
+  const weekBucketCounts: Record<string, number> = Object.fromEntries(PROGRAM_WEEK_BUCKETS.map((b) => [b, 0]));
+  let sinPlanTodavia = 0;
+  for (const p of activas) {
+    const profile = p.patientProfile;
+    if (profile?.renewalEnabled && profile.renewalPlanStartDate) {
+      weekBucketCounts[programWeekBucket(currentProgramWeek(profile.renewalPlanStartDate, now, 12))]++;
+    } else if (profile?.planStartDate) {
+      const totalWeeks = profile.extraMonthEnabled ? 16 : 12;
+      weekBucketCounts[programWeekBucket(currentProgramWeek(profile.planStartDate, now, totalWeeks))]++;
+    } else {
+      sinPlanTodavia++;
+    }
+  }
+
   const pendingByPatient = activas
     .filter((p) => p.patientProfile)
     .map((p) => ({
@@ -235,6 +260,26 @@ export default async function CoachHomePage() {
         <StatCard label="Activas" value={activas.length} />
         <StatCard label="Finalizadas" value={finalizadas.length} />
         <StatCard label="Citas hoy" value={todayAppointments.length} />
+      </div>
+
+      <div className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+        <div className="flex items-center justify-between">
+          <p className="font-semibold">📍 Fase del programa</p>
+          <Link href="/coach/analiticas" className="text-xs text-brand-primary underline hover:opacity-80">
+            Ver detalle →
+          </Link>
+        </div>
+        <p className="mt-1 text-xs text-foreground/60">
+          En qué semana está cada paciente activa ahora mismo{sinPlanTodavia > 0 && ` · ${sinPlanTodavia} sin Plan nutricional todavía`}
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {PROGRAM_WEEK_BUCKETS.map((bucket) => (
+            <div key={bucket} className="rounded-xl bg-brand-tertiary-soft p-3 text-center">
+              <p className="text-xl font-semibold text-brand-secondary">{weekBucketCounts[bucket]}</p>
+              <p className="text-[11px] text-foreground/70">{bucket}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

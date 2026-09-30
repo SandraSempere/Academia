@@ -294,6 +294,15 @@ export function currentProgramWeek(planStartDate: Date, today: Date, totalWeeks:
   return Math.min(Math.max(week, 1), totalWeeks);
 }
 
+export const PROGRAM_WEEK_BUCKETS = ["Semanas 1-4", "Semanas 5-8", "Semanas 9-12", "Semanas 13-16 · Mes extra"] as const;
+
+export function programWeekBucket(week: number): (typeof PROGRAM_WEEK_BUCKETS)[number] {
+  if (week <= 4) return PROGRAM_WEEK_BUCKETS[0];
+  if (week <= 8) return PROGRAM_WEEK_BUCKETS[1];
+  if (week <= 12) return PROGRAM_WEEK_BUCKETS[2];
+  return PROGRAM_WEEK_BUCKETS[3];
+}
+
 export function isTimeTbd(date: Date) {
   return date.getHours() === 0 && date.getMinutes() === 0;
 }

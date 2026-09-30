@@ -6,19 +6,12 @@ import {
   computeCheckpoints,
   computeExtraMonthCheckpoints,
   currentProgramWeek,
+  programWeekBucket,
+  PROGRAM_WEEK_BUCKETS as WEEK_BUCKETS,
 } from "@/lib/revisiones";
 import { QUINCENAL_SECTIONS } from "@/lib/quincenal-form-fields";
 
 export const dynamic = "force-dynamic";
-
-const WEEK_BUCKETS = ["Semanas 1-4", "Semanas 5-8", "Semanas 9-12", "Semanas 13-16 · Mes extra"] as const;
-
-function bucketForWeek(week: number): (typeof WEEK_BUCKETS)[number] {
-  if (week <= 4) return WEEK_BUCKETS[0];
-  if (week <= 8) return WEEK_BUCKETS[1];
-  if (week <= 12) return WEEK_BUCKETS[2];
-  return WEEK_BUCKETS[3];
-}
 
 const ALL_QUINCENAL_FIELDS = QUINCENAL_SECTIONS.flatMap((s) => s.fields);
 
@@ -51,12 +44,12 @@ export default async function AnaliticasPage() {
   for (const { user, profile } of activas) {
     if (profile.renewalEnabled && profile.renewalPlanStartDate) {
       const week = currentProgramWeek(profile.renewalPlanStartDate, today, 12);
-      weekCounts[bucketForWeek(week)]++;
+      weekCounts[programWeekBucket(week)]++;
       activeWeekRows.push({ name: patientDisplayName(user), week, totalWeeks: 12, renewal: true });
     } else if (profile.planStartDate) {
       const totalWeeks = profile.extraMonthEnabled ? 16 : 12;
       const week = currentProgramWeek(profile.planStartDate, today, totalWeeks);
-      weekCounts[bucketForWeek(week)]++;
+      weekCounts[programWeekBucket(week)]++;
       activeWeekRows.push({ name: patientDisplayName(user), week, totalWeeks, renewal: false });
     } else {
       sinPlanTodavia++;

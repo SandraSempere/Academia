@@ -185,7 +185,7 @@ export default async function PacienteDetailPage({
   const notificationLogs = await prisma.notificationLog.findMany({
     where: { patientProfileId: patient.patientProfile.id },
     orderBy: { createdAt: "desc" },
-    take: 30,
+    take: 200,
   });
   const symptomForm = await prisma.symptomForm.findUnique({
     where: { patientProfileId: patient.patientProfile.id },

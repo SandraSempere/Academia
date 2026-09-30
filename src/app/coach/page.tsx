@@ -1,8 +1,19 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getPatientsWithStatus } from "@/lib/patient";
-import { isTimeTbd, formularioWeekOverdue, extraMonthFormularioWeekOverdue } from "@/lib/revisiones";
+import { getPatientsWithStatus, patientDisplayName } from "@/lib/patient";
+import { isTimeTbd, formularioWeekOverdue, extraMonthFormularioWeekOverdue, atMidnight } from "@/lib/revisiones";
 import { markPatientActivationSeen } from "@/app/coach/actions";
+
+// Días sin ninguna actividad propia (marcar la hoja de ruta, guardar el
+// registro de comidas, enviar un formulario) para considerar que una
+// paciente activa está "en riesgo de abandono".
+const INACTIVITY_THRESHOLD_DAYS = 7;
+
+function maxDate(dates: (Date | null | undefined)[]): Date | null {
+  const valid = dates.filter((d): d is Date => !!d);
+  if (valid.length === 0) return null;
+  return new Date(Math.max(...valid.map((d) => d.getTime())));
+}
 
 export const dynamic = "force-dynamic";
 
@@ -76,8 +87,16 @@ export default async function CoachHomePage() {
   upcomingLimit.setDate(upcomingLimit.getDate() + 10);
   upcomingLimit.setHours(23, 59, 59, 999);
 
-  const [{ patients, activas, finalizadas }, todayAppointments, upcomingAppointments, quincenalToReview, autoAppointments, newlyActivated] =
-    await Promise.all([
+  const [
+    { patients, activas, finalizadas },
+    todayAppointments,
+    upcomingAppointments,
+    quincenalToReview,
+    autoAppointments,
+    newlyActivated,
+    completedChecklistItems,
+    mealDiaryEntries,
+  ] = await Promise.all([
       getPatientsWithStatus(),
       prisma.appointment.findMany({
         where: { date: { gte: todayStart, lte: todayEnd } },
@@ -107,9 +126,59 @@ export default async function CoachHomePage() {
         orderBy: { activatedAt: "desc" },
         include: { user: true },
       }),
+      prisma.patientChecklistItem.findMany({
+        where: { completed: true },
+        select: { patientProfileId: true, completedAt: true },
+      }),
+      prisma.mealDiaryEntry.findMany({
+        select: { patientProfileId: true, updatedAt: true },
+      }),
     ]);
 
   const needsTime = autoAppointments.filter((a) => isTimeTbd(a.date));
+
+  // "En riesgo de abandono": paciente activa, con el plan ya empezado hace
+  // más de una semana (para no avisar de las recién llegadas, que todavía
+  // no han tenido tiempo de hacer nada), sin ninguna actividad propia
+  // (hoja de ruta, registro de comidas, cualquier formulario enviado) en
+  // los últimos 7 días. Usa planStartDate como suelo cuando no hay ninguna
+  // actividad todavía, para que se cuente desde que empezó el programa.
+  const atRiskPatients = activas
+    .filter((p) => p.patientProfile?.planStartDate)
+    .map((p) => {
+      const profile = p.patientProfile!;
+      const lastChecklistAt = maxDate(
+        completedChecklistItems.filter((i) => i.patientProfileId === profile.id).map((i) => i.completedAt),
+      );
+      const lastMealDiaryAt = maxDate(
+        mealDiaryEntries.filter((e) => e.patientProfileId === profile.id).map((e) => e.updatedAt),
+      );
+      const lastFormAt = maxDate([
+        profile.symptomForm?.submittedAt,
+        profile.commitmentForm?.submittedAt,
+        profile.celebrationForm?.submittedAt,
+        profile.ruleAuditForm?.submittedAt,
+        profile.closingForm?.submittedAt,
+        ...profile.quincenalForms.map((f) => f.submittedAt),
+      ]);
+      const lastActivity = maxDate([lastChecklistAt, lastMealDiaryAt, lastFormAt, profile.planStartDate]);
+      const daysSinceActivity = lastActivity
+        ? Math.floor((atMidnight(now).getTime() - atMidnight(lastActivity).getTime()) / (1000 * 60 * 60 * 24))
+        : null;
+      return { patient: p, lastActivity, daysSinceActivity };
+    })
+    .filter(
+      (entry) =>
+        entry.daysSinceActivity !== null &&
+        entry.daysSinceActivity >= INACTIVITY_THRESHOLD_DAYS &&
+        // Margen de gracia: que el plan lleve empezado al menos tantos días
+        // como el propio umbral, para no avisar de alguien recién llegada.
+        Math.floor(
+          (atMidnight(now).getTime() - atMidnight(entry.patient.patientProfile!.planStartDate!).getTime()) /
+            (1000 * 60 * 60 * 24),
+        ) >= INACTIVITY_THRESHOLD_DAYS,
+    )
+    .sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
 
   const pendingByPatient = activas
     .filter((p) => p.patientProfile)
@@ -237,6 +306,34 @@ export default async function CoachHomePage() {
                   {appt.source === "revision4" ? "Revisión semana 4" : "Revisión semana 8"}
                 </span>
                 <span className="text-foreground/60">{appt.date.toLocaleDateString("es-ES")}</span>
+              </Link>
+            ))}
+          </div>
+        </details>
+      )}
+
+      {atRiskPatients.length > 0 && (
+        <details open className="rounded-2xl border border-black/5 bg-blanco-roto p-5">
+          <summary className="cursor-pointer font-semibold">
+            ⚠️ Pacientes en riesgo de abandono{" "}
+            <span className="font-normal text-foreground/60">· {atRiskPatients.length}</span>
+          </summary>
+          <p className="mt-1 text-xs text-foreground/50">
+            Activas, con el plan ya empezado, sin marcar nada en su hoja de
+            ruta, registro de comidas ni ningún formulario desde hace al
+            menos {INACTIVITY_THRESHOLD_DAYS} días.
+          </p>
+          <div className="mt-3 flex flex-col gap-2">
+            {atRiskPatients.map(({ patient, daysSinceActivity }) => (
+              <Link
+                key={patient.id}
+                href={`/coach/pacientes/${patient.id}`}
+                className="flex items-center justify-between rounded-lg bg-brand-primary-soft px-3 py-2 text-sm hover:opacity-90"
+              >
+                <span>{patientDisplayName(patient)}</span>
+                <span className="text-foreground/60">
+                  {daysSinceActivity} día{daysSinceActivity === 1 ? "" : "s"} sin actividad
+                </span>
               </Link>
             ))}
           </div>

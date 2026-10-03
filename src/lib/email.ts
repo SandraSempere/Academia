@@ -96,11 +96,11 @@ async function sendEmail(
   subject: string,
   text: string,
   opts: { signature?: boolean; patientProfileId?: string; category?: string } = {},
-) {
+): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || !FROM) {
     console.warn("Email no configurado (falta RESEND_API_KEY/EMAIL_FROM) — no enviado:", subject);
-    return;
+    return false;
   }
 
   const withSignature = opts.signature ?? true;
@@ -125,17 +125,19 @@ async function sendEmail(
       if (opts.patientProfileId && opts.category) {
         await logEmailNotification(opts.patientProfileId, opts.category, subject, "failed");
       }
-      return;
+      return false;
     }
     if (opts.patientProfileId && opts.category) {
       const body = (await res.json().catch(() => null)) as { id?: string } | null;
       await logEmailNotification(opts.patientProfileId, opts.category, subject, "sent", body?.id);
     }
+    return true;
   } catch (err) {
     console.error("Error enviando email:", subject, err);
     if (opts.patientProfileId && opts.category) {
       await logEmailNotification(opts.patientProfileId, opts.category, subject, "failed");
     }
+    return false;
   }
 }
 
@@ -527,4 +529,21 @@ ${body}
 Un abrazo,
 Sandra`;
   await sendEmail(to, subject, text, { patientProfileId, category: "coach_broadcast" });
+}
+
+// Invitación al CRM de leads (setter/closer). El enlace reutiliza la
+// pantalla de "restablecer contraseña" para que elija la suya — la cuenta
+// se crea sin contraseña utilizable. Devuelve si Resend lo aceptó, para
+// avisar a la admin en Equipo CRM si no ha salido.
+export async function sendCrmInviteEmail(to: string, name: string, roleLabel: string, inviteUrl: string, validDays: number) {
+  const text = `¡Hola ${name}!
+
+Sandra te ha dado acceso al CRM de leads como ${roleLabel}.
+
+Entra en este enlace para elegir tu contraseña (válido ${validDays} días):
+
+${inviteUrl}
+
+Después podrás entrar siempre desde https://app.sandrasempere.com/login con este email (${to}) y la contraseña que elijas.`;
+  return sendEmail(to, "Tu acceso al CRM de Sandra Sempere", text);
 }

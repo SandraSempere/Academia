@@ -33,6 +33,9 @@ export default function CoachLayout({ children }: { children: React.ReactNode })
             <Link href="/coach/backup" className="whitespace-nowrap text-sm text-foreground/70 hover:text-brand-primary">
               Copia de seguridad
             </Link>
+            <Link href="/crm" className="whitespace-nowrap text-sm text-foreground/70 hover:text-brand-primary">
+              CRM
+            </Link>
             <Link href="/cambiar-contrasena" className="whitespace-nowrap text-sm text-foreground/70 hover:text-brand-primary">
               🔑 Contraseña
             </Link>

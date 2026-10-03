@@ -1,8 +1,8 @@
 import type { NextAuthConfig } from "next-auth";
 
-// Configuración "edge-safe": sin providers ni Prisma, para poder usarse en
-// middleware (Edge Runtime). La configuración completa (con Credentials +
-// Prisma) vive en auth.ts y solo se usa en server components / route handlers.
+// Configuración sin providers ni Prisma, compartida por auth.ts (server
+// components / route handlers / acciones) y src/proxy.ts. La configuración
+// completa (con Credentials + Prisma) vive en auth.ts.
 export const authConfig = {
   pages: { signIn: "/login" },
   providers: [],
@@ -10,14 +10,16 @@ export const authConfig = {
     jwt({ token, user }) {
       if (user) {
         token.role = user.role;
-        token.id = user.id;
+        token.id = user.id as string;
+        token.sessionVersion = user.sessionVersion ?? 0;
       }
       return token;
     },
     session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as "PATIENT" | "COACH";
+        session.user.role = token.role as "PATIENT" | "COACH" | "SETTER" | "CLOSER";
+        session.user.sessionVersion = (token.sessionVersion as number | undefined) ?? 0;
       }
       return session;
     },

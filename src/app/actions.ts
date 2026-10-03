@@ -79,7 +79,7 @@ export async function checkTermsRequired(email: string): Promise<boolean> {
     include: { patientProfile: true },
   });
   if (!user) return true;
-  if (user.role === "COACH") return false;
+  if (user.role !== "PATIENT") return false;
 
   return !user.patientProfile?.termsAcceptedAt;
 }
@@ -124,7 +124,7 @@ export async function resetPasswordWithToken(formData: FormData) {
     where: { token },
     include: { user: { include: { patientProfile: true } } },
   });
-  if (!resetToken || resetToken.usedAt || resetToken.expiresAt < new Date()) {
+  if (!resetToken || resetToken.usedAt || resetToken.expiresAt < new Date() || resetToken.user.blocked) {
     throw new Error("Este enlace no es válido o ha caducado. Pide uno nuevo.");
   }
 

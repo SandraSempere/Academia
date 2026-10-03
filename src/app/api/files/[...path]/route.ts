@@ -1,5 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
 const UPLOADS_ROOT = path.join(process.cwd(), "public", "uploads");
 
@@ -21,11 +23,47 @@ const MIME_TYPES: Record<string, string> = {
 // después). Esta ruta lee el archivo directamente en cada petición, así que
 // siempre ve el estado real del disco, sin depender de cuándo arrancó el
 // proceso.
+//
+// Son datos de salud (pruebas médicas, planes): hace falta sesión. La coach
+// ve todo; una paciente solo los recursos (comunes a todas) y sus propios
+// planes/pruebas — esos archivos se guardan como "<patientProfileId>-...".
+// Setter/closer ni llegan aquí (403 en src/proxy.ts).
+async function canAccess(segments: string[]) {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false as const, status: 401 };
+  if (session.user.role === "COACH") return { ok: true as const };
+  if (session.user.role !== "PATIENT") return { ok: false as const, status: 403 };
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { blocked: true, patientProfile: { select: { id: true } } },
+  });
+  if (!user || user.blocked || !user.patientProfile) return { ok: false as const, status: 403 };
+
+  const [folder, filename] = segments;
+  if (segments.length === 2 && folder === "recursos") return { ok: true as const };
+  if (
+    segments.length === 2 &&
+    (folder === "planes" || folder === "pruebas-medicas") &&
+    filename.startsWith(`${user.patientProfile.id}-`)
+  ) {
+    return { ok: true as const };
+  }
+  return { ok: false as const, status: 403 };
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ path: string[] }> }) {
   const { path: segments } = await params;
 
   if (segments.length === 0 || segments.some((s) => !s || s.includes("..") || s.includes("/") || s.includes("\\"))) {
     return new Response("No encontrado", { status: 404 });
+  }
+
+  const access = await canAccess(segments);
+  if (!access.ok) {
+    return new Response(access.status === 401 ? "Inicia sesión para ver este archivo." : "No tienes acceso a este archivo.", {
+      status: access.status,
+    });
   }
 
   const filePath = path.join(UPLOADS_ROOT, ...segments);

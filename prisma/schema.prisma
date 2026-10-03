@@ -12,9 +12,14 @@ datasource db {
   provider = "sqlite"
 }
 
+// COACH = admin (Sandra): ve toda la app, incluido el CRM. SETTER y CLOSER
+// son el equipo comercial del CRM de leads: solo pueden ver /crm (ver
+// src/proxy.ts).
 enum Role {
   PATIENT
   COACH
+  SETTER
+  CLOSER
 }
 
 model User {
@@ -25,6 +30,10 @@ model User {
   role                Role                 @default(PATIENT)
   blocked             Boolean              @default(false) // la coach le bloquea el acceso a la app sin borrar sus datos
   mustChangePassword  Boolean              @default(true) // fuerza a cambiar la contraseña provisional/reiniciada al entrar — solo se comprueba para pacientes
+  sessionVersion      Int                  @default(0) // va dentro del JWT: subirlo invalida al instante todas las sesiones abiertas (desactivar a un miembro del CRM)
+  lastSeenAt          DateTime? // último acceso real (no solo el login, la sesión dura 30 días) — "Última conexión" en Equipo CRM
+  takesCalls          Boolean              @default(false) // "Hace llamadas": si está activo, sale como opción del desplegable "Closer" de los leads
+  invitedAt           DateTime? // última invitación al CRM enviada (setter/closer)
   createdAt           DateTime             @default(now())
   patientProfile      PatientProfile?
   passwordResetTokens PasswordResetToken[]

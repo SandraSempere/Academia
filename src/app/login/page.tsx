@@ -41,7 +41,8 @@ export default function LoginPage() {
     }
 
     const session = await getSession();
-    router.push(session?.user?.role === "COACH" ? "/coach" : "/");
+    const role = session?.user?.role;
+    router.push(role === "COACH" ? "/coach" : role === "SETTER" || role === "CLOSER" ? "/crm" : "/");
     router.refresh();
   }
 

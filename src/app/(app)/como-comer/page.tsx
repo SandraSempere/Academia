@@ -43,7 +43,7 @@ export default async function ComoComerPage() {
           los campos si lo abres en el móvil u ordenador.
         </p>
         <a
-          href="/uploads/recursos/como-comer-no-solo-que-comer.pdf"
+          href="/api/files/recursos/como-comer-no-solo-que-comer.pdf"
           download
           className="mt-3 inline-flex items-center gap-1 self-start rounded-full bg-brand-primary px-4 py-2 text-xs font-medium text-white hover:opacity-90"
         >

@@ -1,14 +1,18 @@
 import { DefaultSession } from "next-auth";
 
+type AppRole = "PATIENT" | "COACH" | "SETTER" | "CLOSER";
+
 declare module "next-auth" {
   interface User {
-    role: "PATIENT" | "COACH";
+    role: AppRole;
+    sessionVersion: number;
   }
 
   interface Session {
     user: {
       id: string;
-      role: "PATIENT" | "COACH";
+      role: AppRole;
+      sessionVersion: number;
     } & DefaultSession["user"];
   }
 }
@@ -16,6 +20,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string;
-    role: "PATIENT" | "COACH";
+    role: AppRole;
+    sessionVersion: number;
   }
 }
